@@ -15,3 +15,9 @@ class CustomerSerializer(ModelSerializer):
         if user and user.roles.lower() != 'sales':
             raise ValidationError("Lead can only be assigned to sales representative")
         return user
+    
+
+class LimitedCustomerSerailizer(ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ["name", "company", "email", "phone", "assigned_to"]

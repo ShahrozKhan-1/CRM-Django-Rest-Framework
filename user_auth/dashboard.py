@@ -1,0 +1,31 @@
+from rest_framework.response import Response
+from lead.models import Lead
+from deal.models import Deal
+from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .permissions import *
+
+
+
+class DashboardView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdmin | IsManager| IsSales]
+
+    def get(self, request):
+        user = request.user
+
+        if user.roles == 'Admin' or user.roles == 'Admin':
+            lead_count = Lead.objects.filter(is_deleted=False).count()
+            open_deal_count = Deal.objects.filter(is_deleted=False, stage='Open').count()
+            close_deal_count = Deal.objects.filter(is_deleted=False, stage='Close').count()
+
+        if user.roles == 'Sales':
+            lead_count = Lead.objects.filter(is_deleted=False, assigned_to=user).count()
+            open_deal_count = Deal.objects.filter(is_deleted=False, stage='Open', assigned_to=user).count()
+            close_deal_count = Deal.objects.filter(is_deleted=False, stage='Close', assigned_to=user).count()
+        
+        return Response({
+            "lead_count":lead_count,
+            "open_deal_count":open_deal_count,
+            "close_deal_count":close_deal_count,
+        })

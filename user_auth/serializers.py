@@ -43,3 +43,9 @@ class LimitedUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username',]
+
+
+class SearchResultSerializer(serializers.Serializer):
+    results = serializers.ListField(child=serializers.DictField())
+    count = serializers.IntegerField()
+    query = serializers.CharField()

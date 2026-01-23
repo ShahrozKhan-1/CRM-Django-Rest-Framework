@@ -19,6 +19,12 @@ class LeadSerializer(ModelSerializer):
         return user
     
 
+class LimitedLeadSerializer(ModelSerializer):
+    class Meta:
+        model = Lead
+        fields = ["name", "email", "phone", "company", "status", "created_by"]
+    
+
 
 class LeadStatusSerializer(ModelSerializer):
     class Meta:

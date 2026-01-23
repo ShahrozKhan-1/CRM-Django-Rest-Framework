@@ -11,6 +11,15 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+import cloudinary	
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,9 +52,13 @@ INSTALLED_APPS = [
     'lead',
     'customer',
     'deal',
+    'attachment',
+    'cloudinary',
 ]
 
 REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 7,
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ],
@@ -53,6 +66,16 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication'
     )
 }
+
+# Cloudinary configuration
+cloudinary.config( 
+  	cloud_name = os.getenv('CLOUD_NAME'),
+  	api_key = os.getenv('API_KEY'),
+  	api_secret = os.getenv('API_SECRET')
+)
+
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 AUTH_USER_MODEL = 'user_auth.User'
 

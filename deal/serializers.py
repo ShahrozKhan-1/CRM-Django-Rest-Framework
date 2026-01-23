@@ -29,6 +29,12 @@ class DealSerializer(ModelSerializer):
         if lead and lead.customers != customer:
             raise ValidationError("Lead does not belong to the selected customer")
         return data
+    
+
+class LimitedDealSerializer(ModelSerializer):
+    class Meta:
+        model = Deal
+        fields = ["title", "amount", "stage", "assigned_to" ]
 
 
 
