@@ -13,22 +13,22 @@ class DealSerializer(ModelSerializer):
         model = Deal
         exclude = ["is_deleted"]
 
-    def validate_assigned_to(self, value):
-        customer = value.get("customer")
-        if customer:
-            user = customer.assigned_to
-            if user and user.roles.lower() != 'sales':
-                raise ValidationError("Deal can only be assigned to sales representative")
-            value["assigned_to"]=user
-        return user
-    
-    def validate(self, data):
-        lead = data.get("lead")
-        customer = data.get("customer")
+    def validate(self, attrs):
+        assigned_to = attrs.get("assigned_to")
+        customer = attrs.get("customer")
+        lead = attrs.get("lead")
+        if assigned_to and customer:
+            if customer.assigned_to != assigned_to:
+                raise ValidationError(
+                    {"assigned_to": "Assigned user does not belong to this customer"}
+                )
+        if lead and customer:
+            if lead.customers != customer:
+                raise ValidationError(
+                    {"lead": "Lead does not belong to the selected customer"}
+                )
 
-        if lead and lead.customers != customer:
-            raise ValidationError("Lead does not belong to the selected customer")
-        return data
+        return attrs
     
 
 class LimitedDealSerializer(ModelSerializer):
