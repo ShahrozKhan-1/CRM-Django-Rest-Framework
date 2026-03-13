@@ -7,16 +7,22 @@ from .serializers import *
 from customer.models import Customer
 from deal.models import Deal
 from rest_framework import status
+from django.db.models import Q
 
 
 
 
 class LeadView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAdmin | IsManager]
+    permission_classes = [IsAdmin | IsManager | IsSales]
 
     def get(self, request):
-        leads = Lead.objects.filter(created_by=request.user, is_deleted=False)
+        user = request.user
+        if user.roles == "Admin" or user.roles == "Manager":
+            leads = Lead.objects.filter(is_deleted=False)
+
+        else:
+            leads = Lead.objects.filter(Q(created_by=request.user) | Q(assigned_to=request.user), is_deleted=False)
         serializer = LeadSerializer(leads, many=True)
         return Response({"data":serializer.data})
     

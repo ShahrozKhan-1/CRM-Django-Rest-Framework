@@ -14,7 +14,7 @@ class DashboardView(APIView):
     def get(self, request):
         user = request.user
 
-        if user.roles == 'Admin' or user.roles == 'Admin':
+        if user.roles == 'Admin' or user.roles == 'Manager':
             lead_count = Lead.objects.filter(is_deleted=False).count()
             open_deal_count = Deal.objects.filter(is_deleted=False, stage='Open').count()
             close_deal_count = Deal.objects.filter(is_deleted=False, stage='Close').count()

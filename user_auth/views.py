@@ -18,6 +18,7 @@ from attachment.serializers import AttachmentSerializer
 from rest_framework import status
 from django.db.models import Q
 from rest_framework.pagination import LimitOffsetPagination
+from .models import Role, Permission
 
 
 User = get_user_model()
@@ -50,10 +51,121 @@ class CreateUser(APIView):
             serializer.save()
             return Response({"data":serializer.data, "message":"User Edited Succesfully"})
         return Response({"message":serializer.errors})
+    
+
+class UserProfile(APIView):
+
+    permission_classes = [IsAdmin | IsManager | IsSales] 
+    authentication_classes = [JWTAuthentication]    
+
+    def get(self, request):
+        user = User.objects.get(id=request.user.id)
+        serializer = UserSerializer(user)
+        return Response({"data":serializer.data})
+    
+    def put(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"data":serializer.data, "message":"User Edited Succesfully"})
+        return Response({"message":serializer.errors})
 
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+
+
+
+
+
+class RolesView(APIView):
+    permission_classes = [IsAdminUser | IsAdmin]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        roles = Role.objects.all()
+        serializer = RoleSerializer(roles, many=True)
+        return Response({"data":serializer.data})
+    
+
+    def post(self, request):
+        instance = request.data
+        serializer = RoleSerializer(data=instance)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"data":serializer.data, "message":"Role Created Successffully"})
+        return Response({"data":serializer.errors, "message":"Error While Creating Role"})
+    
+    def put(self, request, role_id):
+        role = Role.objects.get(id=role_id)
+        serializer = RoleSerializer(role, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"data":serializer.data, "message":"Role Edited Succesfully"})
+        return Response({"message":serializer.errors})
+    
+    def delete(self, request, role_id):
+        role = Deal.objects.get(id=role_id, is_deleted=False)
+        role.is_deleted = True
+        role.save()
+        return Response({"message":"Role deleted successfully"})
+
+
+class PermissionView(APIView):
+    permission_classes = [IsAdminUser | IsAdmin]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        permissions = Permission.objects.all()
+        serializer = PermissionSerializer(permissions, many=True)
+        return Response({"data":serializer.data})
+
+    def post(self, request):
+        instance = request.data
+        print("permission actions list: ", instance.get("actions"))
+        serializer = PermissionSerializer(data=instance)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"data":serializer.data, "message":"Permission Created Successffully"})
+        return Response({"data":serializer.errors, "message":"Error While Creating Permission"})
+    
+    def put(self, request, permission_id):
+        permission = Permission.objects.get(id=permission_id)
+        serializer = PermissionSerializer(permission, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"data":serializer.data, "message":"User Edited Succesfully"})
+        return Response({"message":serializer.errors})
+    
+    def delete(self, request, permission_id):
+        permission = Permission.objects.get(id=permission_id, is_deleted=False)
+        permission.is_deleted = True
+        permission.save()
+        return Response({"message":"permission deleted successfully"})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class SearchAPIView(APIView):
     authentication_classes = [JWTAuthentication]

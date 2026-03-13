@@ -40,6 +40,7 @@ class LeadStatusSerializer(ModelSerializer):
             "Converted":["Closed_lost"]
         }
         current = self.instance.status
-        if value not in transition.get(current, []):
-             ValidationError(f"Cannot change status from {current} to {value}")
+        allowed_status = transition.get(current, [])
+        if value not in allowed_status:
+            raise ValidationError(f"Cannot change status from {current} to {value}")
         return value
