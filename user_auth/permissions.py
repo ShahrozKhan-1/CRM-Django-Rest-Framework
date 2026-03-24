@@ -1,25 +1,6 @@
 from rest_framework.permissions import BasePermission
+from .models import Role, Permission
 
-
-class IsAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.roles == 'Admin'
-
-
-class IsManager(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.roles == 'Manager'
-
-
-class IsSales(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.roles == 'Sales'
-
-
-class IsSupport(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.roles == 'Support'
-    
 
 class AttachmentObjectPermission(BasePermission):
 
@@ -45,3 +26,65 @@ class AttachmentObjectPermission(BasePermission):
             )
 
         return False
+
+
+
+class HasPermissions(BasePermission):
+
+    ACTION_MAP = {
+        "list": "read",
+        "retrieve": "read",
+        "create": "create",
+        "update": "update",
+        "partial_update": "update",
+        "destroy": "delete",
+        "get": "read",
+        "head": "read",
+        "options": "read",
+        "post": "create",
+        "put": "update",
+        "patch": "update",
+        "delete": "delete",
+    }
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+
+        if user.is_superuser:
+            return True
+
+        view_action = getattr(view, "action", None)
+        if view_action is None:
+            view_action = request.method.lower()
+
+        view_action = str(view_action).strip().lower()
+        action = self.ACTION_MAP.get(view_action)
+        http_method = request.method.lower()
+        permission_name = getattr(view, "permission_name", None)
+
+        if not permission_name:
+            return True
+        
+        if not action:
+            return False
+
+        role = Role.objects.filter(name__iexact=str(user.roles).strip()).first()
+        if not role:
+            return False
+
+        permission = Permission.objects.filter(
+            role=role,
+            name__iexact=str(permission_name).strip(),
+        ).first()
+
+        if not permission:
+            return False
+
+        allowed_actions = {
+            str(item).strip().lower()
+            for item in (permission.actions or [])
+            if item is not None
+        }
+        return action in allowed_actions or http_method in allowed_actions

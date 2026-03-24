@@ -6,7 +6,7 @@ from .dashboard import DashboardView
 urlpatterns = [
     path("all-users/", CreateUser.as_view(), name="get all user"),
     path("create-user/", CreateUser.as_view(), name="create user"),
-    path("edit-user/", CreateUser.as_view(), name="create user"),
+    path("edit-user/<int:user_id>/", CreateUser.as_view(), name="edit user"),
     path("login/", LoginView.as_view(), name="login"),
 
     path("profile/", UserProfile.as_view(), name="user profile"),
@@ -17,5 +17,6 @@ urlpatterns = [
 
     path("role/", RolesView.as_view(), name="role"),
 
-    path("permission/", PermissionView.as_view(), name="permission")
+    path("permission/", PermissionView.as_view(), name="permission"),
+    path("permission/<int:permission_id>/", PermissionView.as_view(), name="permission-detail")
 ]

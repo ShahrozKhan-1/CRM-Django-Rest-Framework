@@ -11,10 +11,6 @@ class CustomerSerializer(ModelSerializer):
         model = Customer
         exclude = ["is_deleted"]
 
-    def validate_assigned_to(self, user):
-        if user and user.roles.lower() != 'sales':
-            raise ValidationError("Lead can only be assigned to sales representative")
-        return user
     
 
 class LimitedCustomerSerailizer(ModelSerializer):

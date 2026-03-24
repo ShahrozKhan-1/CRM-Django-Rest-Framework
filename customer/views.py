@@ -1,5 +1,5 @@
 from rest_framework.response import Response
-from user_auth.permissions import IsAdmin, IsManager, IsSales
+from user_auth.permissions import HasPermissions
 from rest_framework.views import APIView
 from .models import Lead
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -13,7 +13,8 @@ from .serializers import *
 
 class CustomerView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAdmin]
+    permission_classes = [HasPermissions]
+    permission_name = "customer"
 
     def get(self, request):
         customer = Customer.objects.filter(is_deleted=False)
@@ -36,7 +37,8 @@ class CustomerView(APIView):
 
 class UserCustomerView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAdmin | IsSales | IsManager]
+    permission_classes = [HasPermissions]
+    permission_name = "customer"
 
     def get(self, request):
         customer = Customer.objects.filter(assigned_to=request.user)
@@ -45,8 +47,6 @@ class UserCustomerView(APIView):
     
     def put(self, request, customer_id):
         customer = Customer.objects.get(id=customer_id, is_deleted=False)
-        if request.user.roles == "Sales" and customer.assigned_to != request.user:
-            return Response({"message":"You are not allowed to update the Custoemr"}, status=status.HTTP_403_FORBIDDEN)
         
         serializer = CustomerSerializer(customer, data=request.data, partial=True)
         if serializer.is_valid():

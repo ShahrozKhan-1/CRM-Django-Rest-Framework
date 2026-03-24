@@ -59,12 +59,12 @@ class DealStageSerializer(ModelSerializer):
         model = Deal
         fields = ["stage"]
 
-    def validate(self, value):
-        transition = {
-                "Open":["Won", "Lost"],
-                "Won":["Close"]
-            }
-        current = self.instance.stage
-        if value not in transition.get(current, []):
-            raise ValidationError(f"Cannot change stage from {current} to {value}")
-        return value
+    # def validate(self, value):
+    #     transition = {
+    #             "Open":["Won", "Lost"],
+    #             "Won":["Close"]
+    #         }
+    #     current = self.instance.stage
+    #     if value not in transition.get(current, []):
+    #         raise ValidationError(f"Cannot change stage from {current} to {value}")
+        # return value

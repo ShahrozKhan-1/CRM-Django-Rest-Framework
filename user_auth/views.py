@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -13,8 +13,6 @@ from deal.models import Deal
 from deal.serializers import LimitedDealSerializer
 from customer.models import Customer
 from customer.serializers import LimitedCustomerSerailizer
-from attachment.models import Attachment
-from attachment.serializers import AttachmentSerializer
 from rest_framework import status
 from django.db.models import Q
 from rest_framework.pagination import LimitOffsetPagination
@@ -24,8 +22,9 @@ from .models import Role, Permission
 User = get_user_model()
 
 class CreateUser(APIView):
-    permission_classes = [IsAdminUser | IsAdmin]
+    permission_classes = [HasPermissions]
     authentication_classes = [JWTAuthentication]
+    permission_name = "user"
 
     def get(self, request):
         users = User.objects.all()
@@ -41,7 +40,7 @@ class CreateUser(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({"data":serializer.data, "message":"User Created Successffully"})
-        return Response({"data":serializer.errors, "message":"Error While Creating User"})
+        return Response({"data":serializer.errors, "message":"Error While Creating User"}, status=status.HTTP_400_BAD_REQUEST)
     
     def put(self, request, user_id):
         user = User.objects.get(id=user_id)
@@ -55,8 +54,9 @@ class CreateUser(APIView):
 
 class UserProfile(APIView):
 
-    permission_classes = [IsAdmin | IsManager | IsSales] 
-    authentication_classes = [JWTAuthentication]    
+    permission_classes = [HasPermissions]
+    authentication_classes = [JWTAuthentication]
+    permission_name = "user"
 
     def get(self, request):
         user = User.objects.get(id=request.user.id)
@@ -73,16 +73,14 @@ class UserProfile(APIView):
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
-
-
-
-
+    permission_classes = [AllowAny]
 
 
 
 class RolesView(APIView):
-    permission_classes = [IsAdminUser | IsAdmin]
+    permission_classes = [HasPermissions]
     authentication_classes = [JWTAuthentication]
+    permission_name = "user"
 
     def get(self, request):
         roles = Role.objects.all()
@@ -115,8 +113,9 @@ class RolesView(APIView):
 
 
 class PermissionView(APIView):
-    permission_classes = [IsAdminUser | IsAdmin]
+    permission_classes = [HasPermissions]
     authentication_classes = [JWTAuthentication]
+    permission_name = "user"
 
     def get(self, request):
         permissions = Permission.objects.all()
@@ -142,34 +141,15 @@ class PermissionView(APIView):
         return Response({"message":serializer.errors})
     
     def delete(self, request, permission_id):
-        permission = Permission.objects.get(id=permission_id, is_deleted=False)
-        permission.is_deleted = True
-        permission.save()
+        permission = Permission.objects.get(id=permission_id)
+        permission.delete()
         return Response({"message":"permission deleted successfully"})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class SearchAPIView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAdmin | IsSales | IsManager]
+    permission_classes = [HasPermissions]
+    permission_name = "search"
 
     def get(self, request):
         query = request.GET.get('q', '').strip()
@@ -198,14 +178,12 @@ class SearchAPIView(APIView):
             Q(company__icontains=query)
         )
 
-        attachments = Attachment.objects.filter(name__icontains=query)
 
         # Merge results
         results = (
             list(LimitedLeadSerializer(leads, many=True).data) +
             list(LimitedDealSerializer(deals, many=True).data) +
-            list(LimitedCustomerSerailizer(customers, many=True).data) +
-            list(AttachmentSerializer(attachments, many=True).data)
+            list(LimitedCustomerSerailizer(customers, many=True).data)
         )
 
         paginator = LimitOffsetPagination()
