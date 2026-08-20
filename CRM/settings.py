@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'customer',
     'deal',
     'cloudinary',
+    'chat',
 ]
 
 REST_FRAMEWORK = {

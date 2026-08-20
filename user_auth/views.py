@@ -106,9 +106,9 @@ class RolesView(APIView):
         return Response({"message":serializer.errors})
     
     def delete(self, request, role_id):
-        role = Deal.objects.get(id=role_id, is_deleted=False)
-        role.is_deleted = True
-        role.save()
+        print("role id: ", role_id)
+        role = Role.objects.get(id=role_id)
+        role.delete()
         return Response({"message":"Role deleted successfully"})
 
 

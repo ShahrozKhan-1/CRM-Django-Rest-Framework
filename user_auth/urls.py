@@ -16,6 +16,7 @@ urlpatterns = [
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
 
     path("role/", RolesView.as_view(), name="role"),
+    path("role/<int:role_id>/", RolesView.as_view(), name="delete role"),
 
     path("permission/", PermissionView.as_view(), name="permission"),
     path("permission/<int:permission_id>/", PermissionView.as_view(), name="permission-detail")
