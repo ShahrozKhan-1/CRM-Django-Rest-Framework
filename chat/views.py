@@ -6,6 +6,7 @@ from .serializers import *
 from chat.models import *
 from rest_framework import status
 from .serializers import *
+from .agent.llm import chat_llm
 
 
 
@@ -16,7 +17,7 @@ class ChatView(APIView):
 
 
     def get(self, request):
-        chat = Chat.objects.filter(is_deleted=False).order_by("-created_at")
+        chat = Chat.objects.filter(is_deleted=False)
         serializer = ChatSerializer(chat, many=True)
         return Response({"data":serializer.data})
     
@@ -43,7 +44,7 @@ class ChatMessageView(APIView):
 
 
     def get(self, request, chat_id):
-        chatmessage = ChatMessage.objects.filter(is_deleted=False, chat_id=chat_id).order_by("-created_at")
+        chatmessage = ChatMessage.objects.filter(is_deleted=False, chat_id=chat_id)
         serializer = ChatMessageSerializer(chatmessage, many=True)
         return Response({"data":serializer.data})
     
@@ -52,6 +53,8 @@ class ChatMessageView(APIView):
         instance = request.data
         serializer = ChatMessageSerializer(data=instance)
         if serializer.is_valid():
-            serializer.save(chat_id=chat)
+            user_message = serializer.save(chat_id=chat)
+            ai_response = chat_llm(content=user_message.content, thread_id=user_message.chat_id)
+            ai_message = ChatMessage.objects.create(chat_id=chat, role=ChatMessage.TYPE.AI, content=ai_response)
             return Response({"data":serializer.data, "message":"Message Send Successffully"})
         return Response({"data":serializer.errors, "message":"Error While Sending Message"})
