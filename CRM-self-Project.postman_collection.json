@@ -1,0 +1,390 @@
+{
+  "info": {
+    "_postman_id": "1e5f5e8c-7b59-45c4-99ed-e54ca4ab352d",
+    "name": "CRM-self-Project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "42652299"
+  },
+  "item": [
+    {
+      "name": "KnowledgeBase",
+      "item": [
+        {
+          "name": "Post Document",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "attachments",
+                  "type": "file",
+                  "uuid": "1a515901-caf7-4045-b988-d1f9a30f6190",
+                  "src": [
+                    "/D:/Django/CRM/KnowledgeBase/01_Company_Overview_and_Organization.pdf",
+                    "/D:/Django/CRM/KnowledgeBase/02_Sales_and_Lead_Management_Policy.pdf"
+                  ]
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BaseURL}}/api/knowledge-documents/",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "knowledge-documents",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Post Document",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "attachments",
+                      "type": "file",
+                      "uuid": "1a515901-caf7-4045-b988-d1f9a30f6190",
+                      "src": [
+                        "/D:/Django/CRM/KnowledgeBase/01_Company_Overview_and_Organization.pdf",
+                        "/D:/Django/CRM/KnowledgeBase/02_Sales_and_Lead_Management_Policy.pdf"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BaseURL}}/api/knowledge-documents/",
+                  "host": [
+                    "{{BaseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "knowledge-documents",
+                    ""
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Fri, 21 Aug 2026 19:43:24 GMT"
+                },
+                {
+                  "key": "Server",
+                  "value": "WSGIServer/0.2 CPython/3.12.4"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Accept, origin"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, DELETE, HEAD, OPTIONS"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "533"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "DENY"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"data\": [\n        {\n            \"id\": 1,\n            \"title\": \"01_Company_Overview_and_Organization.pdf\",\n            \"file\": \"https://res.cloudinary.com/dsxlk12bs/image/upload/v1787341403/CRM/hk53oivnjavppgrslpwx.pdf\",\n            \"public_id\": \"CRM/hk53oivnjavppgrslpwx\",\n            \"uploaded_at\": \"2026-08-21T19:43:23.751619Z\"\n        },\n        {\n            \"id\": 2,\n            \"title\": \"02_Sales_and_Lead_Management_Policy.pdf\",\n            \"file\": \"https://res.cloudinary.com/dsxlk12bs/image/upload/v1787341404/CRM/es50a7qoa4jnb3vxqrog.pdf\",\n            \"public_id\": \"CRM/es50a7qoa4jnb3vxqrog\",\n            \"uploaded_at\": \"2026-08-21T19:43:24.788708Z\"\n        }\n    ],\n    \"message\": \"Document Added Successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Document",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseURL}}/api/knowledge-documents/",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "knowledge-documents",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Get Document",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseURL}}/api/knowledge-documents/",
+                  "host": [
+                    "{{BaseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "knowledge-documents",
+                    ""
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Fri, 21 Aug 2026 19:44:59 GMT"
+                },
+                {
+                  "key": "Server",
+                  "value": "WSGIServer/0.2 CPython/3.12.4"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Accept, origin"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, DELETE, HEAD, OPTIONS"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "495"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "DENY"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"data\": [\n        {\n            \"id\": 1,\n            \"title\": \"01_Company_Overview_and_Organization.pdf\",\n            \"file\": \"https://res.cloudinary.com/dsxlk12bs/image/upload/v1787341403/CRM/hk53oivnjavppgrslpwx.pdf\",\n            \"public_id\": \"CRM/hk53oivnjavppgrslpwx\",\n            \"uploaded_at\": \"2026-08-21T19:43:23.751619Z\"\n        },\n        {\n            \"id\": 2,\n            \"title\": \"02_Sales_and_Lead_Management_Policy.pdf\",\n            \"file\": \"https://res.cloudinary.com/dsxlk12bs/image/upload/v1787341404/CRM/es50a7qoa4jnb3vxqrog.pdf\",\n            \"public_id\": \"CRM/es50a7qoa4jnb3vxqrog\",\n            \"uploaded_at\": \"2026-08-21T19:43:24.788708Z\"\n        }\n    ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BaseURL}}/api/knowledge-documents/1/",
+              "host": [
+                "{{BaseURL}}"
+              ],
+              "path": [
+                "api",
+                "knowledge-documents",
+                "1",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Delete Document",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseURL}}/api/knowledge-documents/1/",
+                  "host": [
+                    "{{BaseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "knowledge-documents",
+                    "1",
+                    ""
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Fri, 21 Aug 2026 19:46:21 GMT"
+                },
+                {
+                  "key": "Server",
+                  "value": "WSGIServer/0.2 CPython/3.12.4"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Accept, origin"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, DELETE, HEAD, OPTIONS"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "43"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "DENY"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"document deleted successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "jwt",
+    "jwt": [
+      {
+        "key": "secret",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY4NTg0MDM2LCJpYXQiOjE3Njg1ODM3MzYsImp0aSI6IjdjYzM0YWQ0YTYzZjQzYjRiNGIxN2UwOTA5YTkyZGY0IiwidXNlcl9pZCI6IjEifQ.Cl3Hg-hYXVZrenb0onel7XvxO5orNtZZWw0QkixExM8",
+        "type": "string"
+      },
+      {
+        "key": "algorithm",
+        "value": "HS256",
+        "type": "string"
+      },
+      {
+        "key": "isSecretBase64Encoded",
+        "value": false,
+        "type": "boolean"
+      },
+      {
+        "key": "payload",
+        "value": "{}",
+        "type": "string"
+      },
+      {
+        "key": "addTokenTo",
+        "value": "header",
+        "type": "string"
+      },
+      {
+        "key": "headerPrefix",
+        "value": "Bearer",
+        "type": "string"
+      },
+      {
+        "key": "queryParamKey",
+        "value": "token",
+        "type": "string"
+      },
+      {
+        "key": "header",
+        "value": "{}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BaseURL",
+      "value": ""
+    }
+  ]
+}
