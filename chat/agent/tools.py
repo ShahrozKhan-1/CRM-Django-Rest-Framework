@@ -1,4 +1,4 @@
-from CRM.settings import TAVILY_API_KEY
+from CRM.settings import TAVILY_API_KEY, vector_store
 from langchain_tavily import TavilySearch
 from langchain.tools import tool
 from bs4 import BeautifulSoup
@@ -66,5 +66,21 @@ def get_web_content(url:str) -> str:
     )
     return visible_text
 
-toolkit = [tavily_tool, get_web_content]
+
+@tool
+def search_uploaded_files(query: str) -> str:
+    """
+    Search the uploaded files to find company-related information based on the user's query.
+
+    Args:
+        query (str): The search query or topic to look for in the uploaded documents.
+
+    Returns:
+        The most relevant content found in the uploaded files as object.
+    """
+    context = vector_store.similarity_search(query, k=4)
+    return context
+
+
+toolkit = [tavily_tool, get_web_content, search_uploaded_files]
     

@@ -148,6 +148,12 @@ DATABASES = {
     }
 }
 
+from langchain_chroma import Chroma
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+embed_model = GoogleGenerativeAIEmbeddings(model=str(EMBED_MODEL))
+vector_store = Chroma(embedding_function=embed_model, persist_directory="VectorDB")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

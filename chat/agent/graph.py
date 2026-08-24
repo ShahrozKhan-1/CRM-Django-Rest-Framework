@@ -5,6 +5,8 @@ from langgraph.graph import MessagesState
 from langgraph.checkpoint.postgres import PostgresSaver
 from .tools import toolkit
 from langgraph.prebuilt import ToolNode, tools_condition
+from .system_msg import SYSTEM_MESSAGE
+from langchain_core.messages import SystemMessage
 
 
 llm = ChatGoogleGenerativeAI(
@@ -30,7 +32,8 @@ builder = StateGraph(MessagesState)
 
 
 def chat_node(state: MessagesState):
-    response = llm_with_tools.invoke(state["messages"])
+    messages = [SystemMessage(SYSTEM_MESSAGE), *state["messages"]]
+    response = llm_with_tools.invoke(messages)
     return {
         "messages": [response]
     }
