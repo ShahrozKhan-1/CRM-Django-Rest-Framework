@@ -16,7 +16,11 @@ class CustomerView(APIView):
     permission_classes = [HasPermissions]
     permission_name = "customer"
 
-    def get(self, request):
+    def get(self, request, customer_id=None):
+        if customer_id:
+            lead = Customer.objects.filter(id=customer_id, is_deleted=False).first()
+            serializer = CustomerSerializer(lead)
+            return Response({"data":serializer.data})
         customer = Customer.objects.filter(is_deleted=False)
         serializer = CustomerSerializer(customer, many=True)
         return Response({"data":serializer.data})

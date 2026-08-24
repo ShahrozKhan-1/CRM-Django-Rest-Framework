@@ -17,7 +17,11 @@ class DealView(APIView):
     permission_name = "deal"
 
 
-    def get(self, request):
+    def get(self, request, deal_id=None):
+        if deal_id:
+            lead = Deal.objects.filter(id=deal_id, is_deleted=False).first()
+            serializer = DealSerializer(lead)
+            return Response({"data":serializer.data})
         deal = Deal.objects.filter(is_deleted=False)
         serializer = DealSerializer(deal, many=True)
         return Response({"data":serializer.data})

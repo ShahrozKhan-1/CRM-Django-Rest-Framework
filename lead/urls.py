@@ -4,6 +4,7 @@ from .views import *
 
 urlpatterns = [
     path("lead/", LeadView.as_view(), name="get create lead"),
+    path("lead/<int:lead_id>/", LeadView.as_view(), name="get single lead"),
     path("delete-lead/<int:lead_id>/", LeadView.as_view(), name="delete lead"),
     path("edit-lead/<int:lead_id>/", UserLeadView.as_view(), name="edit lead"),
     path("user-lead/", UserLeadView.as_view(), name="get user assigned lead"),

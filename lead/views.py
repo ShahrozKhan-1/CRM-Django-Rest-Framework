@@ -18,7 +18,11 @@ class LeadView(APIView):
     permission_classes = [HasPermissions]
     permission_name = "lead"
 
-    def get(self, request):
+    def get(self, request, lead_id=None):
+        if lead_id:
+            lead = Lead.objects.filter(id=lead_id, is_deleted=False).first()
+            serializer = LeadSerializer(lead)
+            return Response({"data":serializer.data})
         leads = Lead.objects.filter(is_deleted=False)
         serializer = LeadSerializer(leads, many=True)
         return Response({"data":serializer.data})
