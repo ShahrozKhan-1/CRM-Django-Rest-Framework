@@ -70,12 +70,8 @@ class HasPermissions(BasePermission):
         if not action:
             return False
 
-        role = Role.objects.filter(name__iexact=str(user.roles).strip()).first()
-        if not role:
-            return False
-
         permission = Permission.objects.filter(
-            role=role,
+            role=user.roles,
             name__iexact=str(permission_name).strip(),
         ).first()
 

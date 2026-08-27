@@ -17,6 +17,7 @@ from rest_framework import status
 from django.db.models import Q
 from rest_framework.pagination import LimitOffsetPagination
 from .models import Role, Permission
+from django.urls import get_resolver
 
 
 User = get_user_model()
@@ -34,6 +35,7 @@ class CreateUser(APIView):
 
     def post(self, request):
         instance = request.data
+        print("user isntance: ", instance)
         if 'roles' not in instance:
             return Response({"message":"Role is not defined for the user"})
         serializer = UserSerializer(data=request.data)
@@ -43,6 +45,7 @@ class CreateUser(APIView):
         return Response({"data":serializer.errors, "message":"Error While Creating User"}, status=status.HTTP_400_BAD_REQUEST)
     
     def put(self, request, user_id):
+        print("data ---> ", request.data)
         user = User.objects.get(id=user_id)
         serializer = UserSerializer(user, data=request.data, partial=True)
 
@@ -193,3 +196,30 @@ class SearchAPIView(APIView):
             "query": query,
             "results": paginated_results
         })
+
+
+def get_permission_names(urlpatterns):
+    permissions = []
+    for pattern in urlpatterns:
+        if hasattr(pattern, "url_patterns"):
+            permissions.extend(
+                get_permission_names(pattern.url_patterns)
+            )
+            continue
+        callback = pattern.callback
+        view_class = getattr(callback, "view_class", None)
+        if view_class:
+            permission_name = getattr(view_class, "permission_name", None)
+            if permission_name:
+                permissions.append(permission_name)
+    return permissions
+
+
+class PermissionListView(APIView):
+    permission_classes = [HasPermissions]
+    authentication_classes = [JWTAuthentication]
+    def get(self, request):
+        permissions = get_permission_names(
+            get_resolver().url_patterns
+        )
+        return Response(sorted(set(permissions)))

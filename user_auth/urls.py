@@ -19,5 +19,7 @@ urlpatterns = [
     path("role/<int:role_id>/", RolesView.as_view(), name="delete role"),
 
     path("permission/", PermissionView.as_view(), name="permission"),
-    path("permission/<int:permission_id>/", PermissionView.as_view(), name="permission-detail")
+    path("permission/<int:permission_id>/", PermissionView.as_view(), name="permission-detail"),
+
+    path("view-permission/", PermissionListView.as_view(), name="view permission"),
 ]

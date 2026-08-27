@@ -12,7 +12,7 @@ from .utils import create_embeddings
 class KnowledgeDocumentView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [HasPermissions]
-    permission_name = "chat"
+    permission_name = "knowledge-base"
 
     def get(self, request):
         data = KnowledgeDocument.objects.all()
