@@ -7,6 +7,7 @@ from .tools import toolkit
 from langgraph.prebuilt import ToolNode, tools_condition
 from .system_msg import SYSTEM_MESSAGE
 from langchain_core.messages import SystemMessage
+from .context import AgentContext
 
 
 llm = ChatGoogleGenerativeAI(
@@ -31,7 +32,7 @@ checkpointer.setup()
 builder = StateGraph(MessagesState)
 
 
-def chat_node(state: MessagesState):
+def chat_node(state: MessagesState, runtime):
     messages = [SystemMessage(SYSTEM_MESSAGE), *state["messages"]]
     response = llm_with_tools.invoke(messages)
     return {

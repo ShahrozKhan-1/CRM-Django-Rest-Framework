@@ -17,7 +17,7 @@ class ChatView(APIView):
 
 
     def get(self, request):
-        chat = Chat.objects.filter(is_deleted=False)
+        chat = Chat.objects.filter(is_deleted=False, user_id=request.user.id)
         serializer = ChatSerializer(chat, many=True)
         return Response({"data":serializer.data})
     
@@ -54,7 +54,7 @@ class ChatMessageView(APIView):
         serializer = ChatMessageSerializer(data=instance)
         if serializer.is_valid():
             user_message = serializer.save(chat_id=chat)
-            ai_response = chat_llm(content=user_message.content, thread_id=user_message.chat_id)
+            ai_response = chat_llm(content=user_message.content, thread_id=user_message.chat_id, context=request.user)
             ai_message = ChatMessage.objects.create(chat_id=chat, role=ChatMessage.TYPE.AI, content=ai_response)
             return Response({"data":serializer.data, "message":"Message Send Successffully"})
         return Response({"data":serializer.errors, "message":"Error While Sending Message"})

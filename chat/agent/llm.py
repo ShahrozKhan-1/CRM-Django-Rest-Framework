@@ -1,7 +1,8 @@
 from .graph import graph
+from .context import AgentContext
 
 
-def chat_llm(content: str, thread_id: str):
+def chat_llm(content: str, thread_id: str, context):
     result = graph.invoke(
         {
             "messages": [
@@ -16,6 +17,7 @@ def chat_llm(content: str, thread_id: str):
                 "thread_id": thread_id,
             }
         },
+        context=AgentContext(user=context)
     )
     message = result["messages"][-1]
     content = getattr(message, "content", message)

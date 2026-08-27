@@ -2,6 +2,7 @@ from rest_framework.serializers import ModelSerializer, ValidationError, Primary
 from .models import Lead, LeadAttachments
 from user_auth.serializers import LimitedUserSerializer
 from user_auth.models import User
+from user_auth.models import Role
 
 
 
@@ -22,7 +23,8 @@ class LeadSerializer(ModelSerializer):
 
     
     def validate_assigned_to(self, user):
-        if user and user.roles.lower() != 'sale':
+        role = Role.objects.filter(id=user.roles.id).first()
+        if user and role.name.lower() != 'sale':
             raise ValidationError("Lead can only be assigned to sales representative")
         return user
     

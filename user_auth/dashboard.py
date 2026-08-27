@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.db.models import Count
 from datetime import timedelta
 from django.db.models.functions import TruncMonth
+from django.db.models import Q
 
 
 
@@ -37,7 +38,7 @@ def get_dashboard_leads_queryset(user):
     queryset = Lead.objects.filter(is_deleted=False)
     if user.is_superuser:
         return queryset
-    return queryset.filter(assigned_to=user)
+    return queryset.filter(Q(assigned_to=user) | Q(created_by=user))
 
 
 def get_dashboard_deals_queryset(user):

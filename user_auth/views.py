@@ -223,3 +223,19 @@ class PermissionListView(APIView):
             get_resolver().url_patterns
         )
         return Response(sorted(set(permissions)))
+
+
+class RolesStatsAPIView(APIView):
+
+    def get(self, request):
+        data = {
+            "roles": Role.objects.count(),
+            "permissions": Permission.objects.count(),
+            "active_users": User.objects.count(),
+        }
+        if data:
+            return Response({"data": data, "message": "Roles Statistics Fetched Successfully"}, status=status.HTTP_200_OK)
+        return Response(
+            {"error": "Unable to fetch Roles statistics"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
