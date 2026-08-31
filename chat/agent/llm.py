@@ -2,7 +2,7 @@ from .graph import graph
 from .context import AgentContext
 
 
-def chat_llm(content: str, thread_id: str, context):
+def chat_llm(content: str, thread_id: int, context):
     result = graph.invoke(
         {
             "messages": [
@@ -14,7 +14,7 @@ def chat_llm(content: str, thread_id: str, context):
         },
         config={
             "configurable": {
-                "thread_id": thread_id,
+                "thread_id": str(thread_id),
             }
         },
         context=AgentContext(user=context)

@@ -3,7 +3,7 @@ from CRM.settings import GEMINI_API_KEY, GEMINI_MODEL, DATABASES
 from langgraph.graph.state import END, START, StateGraph
 from langgraph.graph import MessagesState
 from langgraph.checkpoint.postgres import PostgresSaver
-from .tools import toolkit
+from chat.agent.tools.tool import toolkit
 from langgraph.prebuilt import ToolNode, tools_condition
 from .system_msg import SYSTEM_MESSAGE
 from langchain_core.messages import SystemMessage
