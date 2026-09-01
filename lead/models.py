@@ -9,7 +9,6 @@ class Lead(models.Model):
         NEW = 'New', 'new'
         CONTACTED = 'Contacted', 'contacted'
         QUALIFIED = 'Qualified', 'qualified'
-        CONVERTED = 'Converted', 'converted'
         CLOSED_LOST = 'Closed_Lost', 'closed_lost'
 
     name = models.CharField(max_length=255)

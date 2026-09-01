@@ -124,7 +124,5 @@ class LeadStatus(APIView):
                     lead = lead
                 )
 
-                lead.status = Lead.STATUS.CONVERTED
-
             return Response({"data":serializer.data, "message":f"Lead Status Updated"})
         return Response({"Message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

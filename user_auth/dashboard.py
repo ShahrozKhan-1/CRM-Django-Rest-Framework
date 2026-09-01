@@ -78,7 +78,6 @@ def get_lead_stats(user):
         "new": queryset.filter(status=Lead.STATUS.NEW).count(),
         "contacted": queryset.filter(status=Lead.STATUS.CONTACTED).count(),
         "qualified": queryset.filter(status=Lead.STATUS.QUALIFIED).count(),
-        "converted": queryset.filter(status=Lead.STATUS.CONVERTED).count(),
         "lost": queryset.filter(status=Lead.STATUS.CLOSED_LOST).count(),
     }
 

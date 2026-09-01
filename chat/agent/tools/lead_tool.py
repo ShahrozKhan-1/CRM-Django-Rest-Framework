@@ -66,8 +66,7 @@ def edit_lead(
 
     - New: The lead has been created but has not been contacted.
     - Contacted: The lead has been contacted.
-    - Qualified: The lead has been evaluated and is a qualified opportunity.
-    - Converted: The lead has successfully converted into a customer.
+    - Qualified: The lead has been evaluated and is a qualified opportunity and converted into deal and creates a customer.
     - Closed_Lost: The lead is no longer expected to convert.
 
     Status should only be changed when the user explicitly
@@ -156,8 +155,7 @@ def search_leads(lead: SearchLead, runtime: ToolRuntime[AgentContext] = None) ->
     Valid statuses:
     - New: Lead has not been contacted.
     - Contacted: Lead has been contacted but not qualified.
-    - Qualified: Lead meets the criteria for a potential customer.
-    - Converted: Lead has become a customer.
+    - Qualified: Lead meets the criteria for a potential customer and deal.
     - Closed_Lost: Lead will not convert.
     Do not use this tool to modify leads.
     Returns:
