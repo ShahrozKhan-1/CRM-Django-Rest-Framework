@@ -6,6 +6,7 @@ from urllib.request import Request, urlopen
 from bs4.element import Comment
 from .lead_tool import add_lead, edit_lead, search_leads
 from .deal_tool import add_deal, edit_deal, search_deals
+from .customer_tool import add_customer, edit_customer, search_customer
 
 
 @tool
@@ -85,4 +86,4 @@ def search_uploaded_files(query: str) -> str:
 
 
 
-toolkit = [tavily_tool, get_web_content, search_uploaded_files, add_lead, edit_lead, search_leads, add_deal, edit_deal, search_deals]
+toolkit = [tavily_tool, get_web_content, search_uploaded_files, add_lead, edit_lead, search_leads, add_deal, edit_deal, search_deals, add_customer, edit_customer, search_customer]
