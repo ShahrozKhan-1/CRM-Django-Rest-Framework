@@ -3,6 +3,22 @@ from chat.agent.schema import *
 from deal.serializers import DealSerializer
 from chat.agent.context import AgentContext
 from deal.models import Deal
+from django.db.models import Q
+
+
+
+def get_deal_queryset(user): 
+    queryset = Deal.objects.filter(is_deleted=False) 
+    if user.is_superuser: 
+        return queryset 
+    role_name = user.roles.name.lower() if user.roles else None 
+    if role_name == "admin": 
+        return queryset 
+    if role_name == "manager": 
+            return queryset.filter(lead__created_by=user) 
+    if role_name == "sale": 
+        return queryset.filter(assigned_to=user)
+    return queryset.none()
 
 
 @tool
@@ -93,7 +109,7 @@ def edit_deal(
 
     current_user = runtime.context.user
     try:
-        instance = Deal.objects.get(assigned_to=current_user, id=deal.id)
+        instance = get_deal_queryset(current_user).filter(id=deal.id).first()
     except Deal.DoesNotExist:
         return f"Deal with ID {deal.id} was not found or you don't have permission to edit it."
     data = {}
@@ -154,8 +170,7 @@ def search_deals(deal: SearchDeal, runtime: ToolRuntime[AgentContext] = None) ->
 
     current_user = runtime.context.user
     try:
-        queryset = Deal.objects.filter(
-            assigned_to=current_user, is_deleted=False)
+        queryset = get_deal_queryset(current_user)
         if deal.title:
             queryset = queryset.filter(title__icontains=deal.title)
         if deal.amount:

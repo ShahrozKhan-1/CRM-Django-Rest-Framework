@@ -5,6 +5,21 @@ from chat.agent.context import AgentContext
 from customer.models import Customer
 
 
+
+def get_customer_queryset(user): 
+    queryset = Customer.objects.filter(is_deleted=False) 
+    if user.is_superuser: 
+        return queryset 
+    role_name = user.roles.name.lower() if user.roles else None 
+    if role_name == "admin": 
+        return queryset 
+    if role_name == "manager": 
+            return queryset.filter(lead__created_by=user) 
+    if role_name == "sale": 
+        return queryset.filter(assigned_to=user)
+    return queryset.none()
+
+
 @tool
 def add_customer(customer: AddCustomer, runtime: ToolRuntime[AgentContext]) -> str:
     """
@@ -109,7 +124,7 @@ def edit_customer(
 
     current_user = runtime.context.user
     try:
-        instance = Customer.objects.get(assigned_to=current_user, id=customer.id)
+        instance = get_customer_queryset(current_user).filter(id=customer.id).first()
     except Customer.DoesNotExist:
         return f"Customer with ID {customer.id} was not found or you don't have permission to edit it."
     data = {}
@@ -183,39 +198,27 @@ def search_customer(customer: SearchCustomer, runtime: ToolRuntime[AgentContext]
     """
 
     current_user = runtime.context.user
-    print("request: ", customer)
     try:
-        queryset = Customer.objects.filter(
-            assigned_to=current_user,
-            is_deleted=False
-        )
-        print("initial:", list(queryset))
+        queryset = get_customer_queryset(current_user)
 
         if customer.name:
             queryset = queryset.filter(name__icontains=customer.name)
-            print("after name:", list(queryset))
 
         if customer.email:
             queryset = queryset.filter(email__iexact=customer.email)
-            print("after email:", list(queryset))
 
         if customer.phone:
             queryset = queryset.filter(phone=customer.phone)
-            print("after phone:", list(queryset))
 
         if customer.company:
             queryset = queryset.filter(company__icontains=customer.company)
-            print("after company:", list(queryset))
 
         if customer.lead:
             queryset = queryset.filter(lead_id=customer.lead)
-            print("after lead:", list(queryset))
 
         if customer.assigned_to:
             queryset = queryset.filter(assigned_to_id=customer.assigned_to)
-            print("after assigned_to:", list(queryset))
         customers = queryset[:10]
-        print("final searched customer: ", customers)
         if not customers:
             return "No matching customers were found."
         return "\n".join(

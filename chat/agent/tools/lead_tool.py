@@ -7,6 +7,20 @@ from chat.agent.context import AgentContext
 from django.db.models import Q
 
 
+def get_lead_queryset(user):
+    queryset = Lead.objects.filter(is_deleted=False)
+    if user.is_superuser:
+        return queryset
+    role_name = user.roles.name.lower() if user.roles else None
+    if role_name == "admin":
+        return queryset
+    if role_name == "manager":
+        return queryset.filter(created_by=user)
+    if role_name == "sale":
+        return queryset.filter(Q(assigned_to=user) | Q(created_by=user)).distinct()
+    return queryset.none()
+
+
 @tool
 def add_lead(lead:AddLead, runtime: ToolRuntime[AgentContext] = None,) -> str:
     """
@@ -90,10 +104,7 @@ def edit_lead(
 
     current_user = runtime.context.user
     try:
-        instance = Lead.objects.get(
-            Q(assigned_to=current_user) | Q(created_by=current_user),
-            id=lead.id,
-        )
+        instance = get_lead_queryset(current_user).filter(id=lead.id).first()
     except Lead.DoesNotExist:
         return f"Lead with ID {lead.id} was not found or you don't have permission to edit it."
     data = {}
@@ -165,7 +176,7 @@ def search_leads(lead: SearchLead, runtime: ToolRuntime[AgentContext] = None) ->
 
     current_user = runtime.context.user
     try:
-        queryset = Lead.objects.filter(Q(assigned_to=current_user) | Q(created_by=current_user), is_deleted=False)
+        queryset = get_lead_queryset(current_user)
         if lead.name:
             queryset = queryset.filter(name__icontains=lead.name)
         if lead.email:
