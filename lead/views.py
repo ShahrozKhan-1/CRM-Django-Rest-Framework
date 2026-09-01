@@ -18,12 +18,28 @@ class LeadView(APIView):
     permission_classes = [HasPermissions]
     permission_name = "lead"
 
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Lead.objects.filter(is_deleted=False)
+        if user.is_superuser:
+            return queryset
+        role_name = user.roles.name.lower() if user.roles else None
+        if role_name == "admin":
+            return queryset
+        if role_name == "manager":
+            return queryset.filter(created_by=user)
+        if role_name == "sale":
+            return queryset.filter(Q(assigned_to=user) | Q(created_by=user)).distinct()
+        return queryset.none()
+
     def get(self, request, lead_id=None):
+        queryset = self.get_queryset()
         if lead_id:
-            lead = Lead.objects.filter(id=lead_id, is_deleted=False).first()
+            lead = queryset.filter(id=lead_id).first()
             serializer = LeadSerializer(lead)
             return Response({"data":serializer.data})
-        leads = Lead.objects.filter(is_deleted=False)
+        leads = queryset
         serializer = LeadSerializer(leads, many=True)
         return Response({"data":serializer.data})
     
@@ -49,30 +65,12 @@ class LeadView(APIView):
             return Response({"data":serializer.data, "message":"Lead Created Successfully"})
         
         return Response({"Message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-    
-    def delete(self, request, lead_id):
-        lead = Lead.objects.get(id=lead_id, is_deleted=False)
-        lead.is_deleted = True
-        LeadAttachments.objects.filter(leads=lead).update(is_deleted=True)
-        lead.save()
-        return Response({"message":"Lead deleted successfully"})
 
-
-class UserLeadView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [HasPermissions]
-    permission_name = "lead"
-
-    def get(self, request):
-        lead = Lead.objects.filter(assigned_to=request.user)
-        serializer = LeadSerializer(lead, many=True)
-        return Response({"data":serializer.data})
-    
     def put(self, request, lead_id):
+        queryset = self.get_queryset()
         if "status" in request.data:
             return Response({"Message":"Status can not be change"}, status=status.HTTP_400_BAD_REQUEST)
-        lead = Lead.objects.get(id=lead_id, is_deleted=False)
-
+        lead = queryset.filter(id=lead_id).first()
         if lead.assigned_to != request.user:
             return Response({"message":"You are not allowed to update the Lead"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -95,6 +93,14 @@ class UserLeadView(APIView):
             serializer.save(updated_by=request.user)
             return Response({"data":serializer.data, "message":"Lead Created Successfully"})
         return Response({"Message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, lead_id):
+        queryset = self.get_queryset()
+        lead = queryset.filter(id=lead_id).first()
+        lead.is_deleted = True
+        LeadAttachments.objects.filter(leads=lead).update(is_deleted=True)
+        lead.save()
+        return Response({"message":"Lead deleted successfully"})
 
 
 class LeadStatus(APIView):

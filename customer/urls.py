@@ -4,6 +4,4 @@ from .views import *
 urlpatterns = [
     path("customer/", CustomerView.as_view()),
     path("customer/<int:customer_id>/", CustomerView.as_view()),
-    path("user-customer/", UserCustomerView.as_view()),
-    path("edit-customer/<int:customer_id>/", UserCustomerView.as_view()),
 ]

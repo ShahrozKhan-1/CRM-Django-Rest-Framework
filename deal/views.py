@@ -17,13 +17,28 @@ class DealView(APIView):
     permission_name = "deal"
 
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Deal.objects.filter(is_deleted=False)
+        if user.is_superuser:
+            return queryset
+        role_name = user.roles.name.lower() if user.roles else None
+        if role_name == "admin":
+            return queryset
+        if role_name == "manager":
+            return queryset.filter(lead__created_by=user)
+        if role_name == "sale":
+            return queryset.filter(assigned_to=user)
+        return queryset.none()
+
     def get(self, request, deal_id=None):
+        queryset = self.get_queryset()
         if deal_id:
-            lead = Deal.objects.filter(id=deal_id, is_deleted=False).first()
-            serializer = DealSerializer(lead)
+            deal = queryset.filter(id=deal_id).first()
+            serializer = DealSerializer(deal)
             return Response({"data":serializer.data})
-        deal = Deal.objects.filter(is_deleted=False)
-        serializer = DealSerializer(deal, many=True)
+        deals = queryset
+        serializer = DealSerializer(deals, many=True)
         return Response({"data":serializer.data})
     
     def post(self, request):
@@ -47,28 +62,10 @@ class DealView(APIView):
                     attachments.append(attachment)
             return Response({"data":serializer.data, "message":"Deal Created Successfully"})
         return Response({"Message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-    
-    def delete(self, request, deal_id):
-        deal = Deal.objects.get(id=deal_id, is_deleted=False)
-        deal.is_deleted = True
-        DealAttachments.objects.filter(deals=deal).update(is_deleted=True)
-        deal.save()
-        return Response({"message":"Deal deleted successfully"})
-
-
-class UserDealView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [HasPermissions]
-    permission_name = "deal"
-
-    def get(self, request):
-        deal = Deal.objects.filter(assigned_to=request.user)
-        serializer = DealSerializer(deal, many=True)
-        return Response({"data":serializer.data})
-    
 
     def put(self, request, deal_id):
-        deal = Deal.objects.get(id=deal_id, is_deleted=False)
+        queryset = self.get_queryset()
+        deal = queryset.filter(id=deal_id).first()
         serializer = DealSerializer(deal, data=request.data, partial=True)
 
         files = request.FILES.getlist('attachments')
@@ -91,6 +88,15 @@ class UserDealView(APIView):
             serializer.save()
             return Response({"data":serializer.data, "message":"Deal Updated Successfully"})
         return Response({"Message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    def delete(self, request, deal_id):
+        queryset = self.get_queryset()
+        deal = queryset.filter(id=deal_id).first()
+        deal.is_deleted = True
+        DealAttachments.objects.filter(deals=deal).update(is_deleted=True)
+        deal.save()
+        return Response({"message":"Deal deleted successfully"})
 
 
 class DealStatus(APIView):
