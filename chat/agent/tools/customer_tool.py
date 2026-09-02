@@ -225,12 +225,12 @@ def search_customer(customer: SearchCustomer, runtime: ToolRuntime[AgentContext]
             return "No matching customers were found."
         return "\n".join(
             [
-                f"Id: {item.id}"
+                f"Id: {item.id},"
                 f"Name: {item.name}, "
                 f"Email: {item.email}, "
                 f"Phone Number: {item.phone}, "
                 f"Company: {item.company}, "
-                f"Lead: {item.lead}, "
+                f"Lead: {item.lead.id}, "
                 f"Assigned to: {item.assigned_to}, "
                 for item in customers
             ]

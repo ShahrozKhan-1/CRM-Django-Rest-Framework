@@ -36,6 +36,8 @@ class SearchLead(BaseModel):
     source: str | None = Field(default=None, description="Source of the lead")
     status: LeadStatus | None = Field(default=None, description="Lead status. New, Contacted, Qualified, or Closed_Lost.")
 
+class ConvertLead(BaseModel):
+    id: int = Field(description="ID of the qualified lead to convert into a customer and deal.")
 
 
 class DealStatus(str, Enum):

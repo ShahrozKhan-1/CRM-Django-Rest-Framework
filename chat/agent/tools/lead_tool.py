@@ -8,6 +8,9 @@ from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Count
+from django.db import transaction
+from customer.models import Customer
+from deal.models import Deal
 
 
 def get_lead_queryset(user):
@@ -267,3 +270,95 @@ def get_lead_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
 
     except Exception as e:
         return f"Unable to retrieve lead statistics: {str(e)}"
+
+
+@tool
+def convert_lead(lead: ConvertLead, runtime: ToolRuntime[AgentContext] = None) -> str:
+    """
+    Convert a qualified lead into a customer and deal.
+
+    Use this tool when a lead needs to be converted after reaching
+    the Qualified status.
+
+    The lead must have status 'Qualified'. The created customer is
+    linked to the lead, and the created deal is linked to both the
+    lead and customer.
+
+    The conversion is atomic and duplicate conversions are prevented.
+    """
+
+    current_user = runtime.context.user
+
+    try:
+        lead_instance = (get_lead_queryset(current_user).filter(id=lead.id).first())
+        if not lead_instance:
+            return (f"Lead with ID {lead.id} was not found or you don't have permission to access it.")
+
+        if lead_instance.status != Lead.STATUS.QUALIFIED:
+            return (
+                f"Lead '{lead_instance.name}' cannot be converted. "
+                f"Its current status is '{lead_instance.status}'. "
+                f"The lead must be Qualified first."
+            )
+        existing_customer = Customer.objects.filter(
+            lead=lead_instance,
+            is_deleted=False,
+        ).first()
+        if existing_customer:
+            existing_deal = Deal.objects.filter(
+                lead=lead_instance,
+                customer=existing_customer,
+                is_deleted=False,
+            ).first()
+            if existing_deal:
+                return (
+                    f"Lead '{lead_instance.name}' has already been "
+                    f"converted.\n"
+                    f"Customer ID: {existing_customer.id}\n"
+                    f"Deal ID: {existing_deal.id}"
+                )
+            with transaction.atomic():
+                deal = Deal.objects.create(
+                    title=f"Deal for {lead_instance.name}",
+                    amount=0,
+                    stage=Deal.STATUS.OPEN,
+                    description=lead_instance.description,
+                    lead=lead_instance,
+                    customer=existing_customer,
+                    assigned_to=lead_instance.assigned_to,
+                )
+            return (
+                f"Lead '{lead_instance.name}' was already converted "
+                f"to Customer ID {existing_customer.id}. "
+                f"A missing Deal was created with ID {deal.id}."
+            )
+        with transaction.atomic():
+            customer = Customer.objects.create(
+                name=lead_instance.name,
+                email=lead_instance.email,
+                phone=lead_instance.phone,
+                company=lead_instance.company,
+                lead=lead_instance,
+                assigned_to=lead_instance.assigned_to,
+            )
+            deal = Deal.objects.create(
+                title=f"Deal for {lead_instance.name}",
+                amount=0,
+                stage=Deal.STATUS.OPEN,
+                description=lead_instance.description,
+                lead=lead_instance,
+                customer=customer,
+                assigned_to=lead_instance.assigned_to,
+            )
+        return (
+            f"Lead '{lead_instance.name}' was successfully converted.\n"
+            f"Customer created with ID: {customer.id}\n"
+            f"Deal created with ID: {deal.id}"
+        )
+
+    except Exception as e:
+        return (
+            f"Unable to convert lead '{lead.id}': "
+            f"{type(e).__name__}: {str(e)}"
+        )
+
