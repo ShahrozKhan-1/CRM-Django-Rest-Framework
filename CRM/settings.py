@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import cloudinary	
+from urllib.parse import parse_qsl, unquote, urlparse
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -97,14 +98,13 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
 ]
 
 ROOT_URLCONF = 'CRM.urls'
@@ -137,14 +137,26 @@ WSGI_APPLICATION = 'CRM.wsgi.application'
 #     }
 # }
 
+NEON_DB = os.environ.get('NEON_DB')
+
+if not NEON_DB:
+    raise RuntimeError('NEON_DB must be set to the Neon PostgreSQL connection string.')
+
+neon_url = urlparse(NEON_DB)
+if neon_url.scheme not in {'postgres', 'postgresql'} or not neon_url.hostname or not neon_url.path:
+    raise RuntimeError('NEON_DB must be a valid PostgreSQL connection string.')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB_NAME'),
-        'USER': os.environ.get('POSTGRES_USERNAME'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('POSTGRES_HOST'),
-        'PORT': os.environ.get('POSTGRES_PORT'),
+        'NAME': neon_url.path.lstrip('/'),
+        'USER': unquote(neon_url.username or ''),
+        'PASSWORD': unquote(neon_url.password or ''),
+        'HOST': neon_url.hostname,
+        'PORT': neon_url.port or 5432,
+        # Preserve Neon options such as sslmode=require from its connection URL.
+        'OPTIONS': dict(parse_qsl(neon_url.query, keep_blank_values=True)),
+        'CONN_MAX_AGE': 600,
     }
 }
 
@@ -191,7 +203,22 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-ALLOWED_HOSTS = ['*' , 'http://localhost:3001' ,'http://localhost:3000',"http://192.168.0.222:3000" , 'http://192.168.0.97:3000',
-                 'http://127.0.0.1:5500','http://localhost:5500','https://preview--ims.lovable.app' ]
+ALLOWED_HOSTS = ['*']
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Frontend origins allowed to call the API from a browser.
+CORS_ALLOWED_ORIGINS = [
+    'https://connect-crm-suite.vercel.app',
+    'https://preview--ims.lovable.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    'http://192.168.0.222:3000',
+    'http://192.168.0.97:3000',
+]
+
+# Required for unsafe (POST/PUT/PATCH/DELETE) requests that use Django's
+# session/CSRF authentication from the deployed frontend.
+CSRF_TRUSTED_ORIGINS = [
+    'https://connect-crm-suite.vercel.app',
+]

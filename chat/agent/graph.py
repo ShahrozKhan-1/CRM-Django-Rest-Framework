@@ -1,5 +1,5 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from CRM.settings import GEMINI_API_KEY, GEMINI_MODEL, DATABASES
+from CRM.settings import GEMINI_API_KEY, GEMINI_MODEL, NEON_DB
 from langgraph.graph.state import END, START, StateGraph
 from langgraph.graph import MessagesState
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -18,15 +18,7 @@ llm = ChatGoogleGenerativeAI(
 
 llm_with_tools = llm.bind_tools(toolkit)
 
-db = DATABASES["default"]
-
-DB_URI = (
-    f"postgresql://{db['USER']}:{db['PASSWORD']}"
-    f"@{db['HOST']}:{db['PORT']}/{db['NAME']}"
-)
-
-
-checkpoint_context = PostgresSaver.from_conn_string(conn_string=DB_URI)
+checkpoint_context = PostgresSaver.from_conn_string(conn_string=NEON_DB)
 checkpointer = checkpoint_context.__enter__()
 checkpointer.setup()
 builder = StateGraph(MessagesState)
