@@ -3,7 +3,9 @@ from chat.agent.schema import *
 from deal.serializers import DealSerializer
 from chat.agent.context import AgentContext
 from deal.models import Deal
-from django.db.models import Q
+from django.db.models import Count, Sum, Avg
+from django.utils import timezone
+from datetime import timedelta
 
 
 
@@ -199,3 +201,78 @@ def search_deals(deal: SearchDeal, runtime: ToolRuntime[AgentContext] = None) ->
         )
     except Exception as e:
         return f"Unable to search deals: {str(e)}"
+
+
+
+
+
+@tool
+def get_deal_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
+    """
+    Return aggregated statistics for deals accessible to the current user.
+
+    Includes total deals, total and average deal value, stage breakdown,
+    value by stage, won/lost deals, win rate, deals closing soon,
+    and overdue deals.
+
+    Use this tool when the user asks for deal statistics, sales pipeline
+    statistics, deal performance, revenue, win rate, or an overview of deals.
+
+    This tool is read-only and does not modify any deals.
+    """
+
+    current_user = runtime.context.user
+
+    try:
+        queryset = get_deal_queryset(current_user)
+
+        today = timezone.now().date()
+        next_30_days = today + timedelta(days=30)
+        total_deals = queryset.count()
+        totals = queryset.aggregate(
+            total_value=Sum("amount"),
+            average_value=Avg("amount"),
+        )
+        total_value = totals["total_value"] or 0
+        average_value = totals["average_value"] or 0
+        stage_data = queryset.values("stage").annotate(
+            count=Count("id"),
+            value=Sum("amount"),
+        )
+        stage_breakdown = {}
+        stage_value = {}
+        for item in stage_data:
+            stage = item["stage"]
+
+            stage_breakdown[stage] = item["count"]
+            stage_value[stage] = item["value"] or 0
+        won_deals = queryset.filter(
+            stage__iexact="Won"
+        ).count()
+
+        lost_deals = queryset.filter(
+            stage__iexact="Lost"
+        ).count()
+
+        closed_deals = won_deals + lost_deals
+        win_rate = (
+            round((won_deals / closed_deals) * 100, 2)
+            if closed_deals > 0
+            else 0
+        )
+        closing_soon = queryset.filter(expected_close_date__gte=today, expected_close_date__lte=next_30_days,).exclude(stage__in=["Won", "Lost", "Closed"]).count()
+        overdue = queryset.filter(expected_close_date__lt=today,).exclude(stage__in=["Won", "Lost", "Closed"]).count()
+        return str({
+            "total_deals": total_deals,
+            "total_value": total_value,
+            "average_deal_value": round(average_value, 2),
+            "stage_breakdown": stage_breakdown,
+            "stage_value": stage_value,
+            "won_deals": won_deals,
+            "lost_deals": lost_deals,
+            "win_rate": win_rate,
+            "closing_soon": closing_soon,
+            "overdue_deals": overdue,
+        })
+    except Exception as e:
+        return f"Unable to retrieve deal statistics: {str(e)}"

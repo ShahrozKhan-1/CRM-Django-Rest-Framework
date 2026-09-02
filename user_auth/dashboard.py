@@ -2,6 +2,7 @@ from django.db.models.aggregates import Sum
 from rest_framework.response import Response
 from lead.models import Lead
 from deal.models import Deal
+from customer.models import Customer
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .permissions import HasPermissions
@@ -24,6 +25,7 @@ class DashboardView(APIView):
             "summary": get_dashboard_summary(user),
             "leads": get_lead_stats(user),
             "deals": get_deal_stats(user),
+            "customers": get_customer_stats(user),
             "activity": get_dashboard_activity(user),
 
             "charts": {
@@ -34,25 +36,59 @@ class DashboardView(APIView):
         })
 
 
+def get_user_role_name(user):
+    return user.roles.name.lower() if user.roles else None
+
+
 def get_dashboard_leads_queryset(user):
     queryset = Lead.objects.filter(is_deleted=False)
     if user.is_superuser:
         return queryset
-    return queryset.filter(Q(assigned_to=user) | Q(created_by=user))
+    role_name = get_user_role_name(user)
+    if role_name == "admin":
+        return queryset
+    if role_name == "manager":
+        return queryset.filter(created_by=user)
+    if role_name == "sale":
+        return queryset.filter(Q(assigned_to=user) | Q(created_by=user)).distinct()
+    return queryset.none()
 
 
 def get_dashboard_deals_queryset(user):
     queryset = Deal.objects.filter(is_deleted=False)
     if user.is_superuser:
         return queryset
-    return queryset.filter(assigned_to=user)
+    role_name = get_user_role_name(user)
+    if role_name == "admin":
+        return queryset
+    if role_name == "manager":
+        return queryset.filter(lead__created_by=user)
+    if role_name == "sale":
+        return queryset.filter(assigned_to=user)
+    return queryset.none()
+
+
+def get_dashboard_customers_queryset(user):
+    queryset = Customer.objects.filter(is_deleted=False)
+    if user.is_superuser:
+        return queryset
+    role_name = get_user_role_name(user)
+    if role_name == "admin":
+        return queryset
+    if role_name == "manager":
+        return queryset.filter(lead__created_by=user)
+    if role_name == "sale":
+        return queryset.filter(assigned_to=user)
+    return queryset.none()
 
 
 def get_dashboard_summary(user):
     lead_queryset = get_dashboard_leads_queryset(user)
     deal_queryset = get_dashboard_deals_queryset(user)
+    customer_queryset = get_dashboard_customers_queryset(user)
 
     total_leads = lead_queryset.count()
+    total_customers = customer_queryset.count()
     open_deals = deal_queryset.filter(stage=Deal.STATUS.OPEN)
     closed_deals = deal_queryset.filter(stage=Deal.STATUS.CLOSED)
     total_deals = deal_queryset.count()
@@ -62,6 +98,7 @@ def get_dashboard_summary(user):
 
     return {
         "total_leads": total_leads,
+        "total_customers": total_customers,
         "total_deals": total_deals,
         "open_deals": open_deals.count(),
         "closed_deals": closed_deals.count(),
@@ -93,6 +130,16 @@ def get_deal_stats(user):
     }
 
 
+def get_customer_stats(user):
+    queryset = get_dashboard_customers_queryset(user)
+
+    return {
+        "converted_from_leads": queryset.filter(lead__isnull=False).count(),
+        "manually_created": queryset.filter(lead__isnull=True).count(),
+        "with_deals": queryset.filter(deals__isnull=False, deals__is_deleted=False).distinct().count(),
+    }
+
+
 def get_dashboard_activity(user):
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -100,12 +147,15 @@ def get_dashboard_activity(user):
 
     lead_queryset = get_dashboard_leads_queryset(user)
     deal_queryset = get_dashboard_deals_queryset(user)
+    customer_queryset = get_dashboard_customers_queryset(user)
 
     return {
         "leads_today": lead_queryset.filter(created_at__gte=today_start).count(),
         "deals_today": deal_queryset.filter(created_at__gte=today_start).count(),
+        "customers_today": customer_queryset.filter(created_at__gte=today_start).count(),
         "leads_this_week": lead_queryset.filter(created_at__gte=week_start).count(),
         "deals_this_week": deal_queryset.filter(created_at__gte=week_start).count(),
+        "customers_this_week": customer_queryset.filter(created_at__gte=week_start).count(),
     }
 
 def get_leads_trend(user, days=30):

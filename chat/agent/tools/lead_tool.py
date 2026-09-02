@@ -5,6 +5,9 @@ from lead.serializers import LeadSerializer
 from user_auth.models import User
 from chat.agent.context import AgentContext
 from django.db.models import Q
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Count
 
 
 def get_lead_queryset(user):
@@ -63,10 +66,7 @@ def add_lead(lead:AddLead, runtime: ToolRuntime[AgentContext] = None,) -> str:
 
 
 @tool
-def edit_lead(
-    lead: EditLead,
-    runtime: ToolRuntime[AgentContext] = None,
-) -> str:
+def edit_lead(lead: EditLead, runtime: ToolRuntime[AgentContext] = None) -> str:
     """
     Edit an existing lead in the CRM database.
 
@@ -205,3 +205,65 @@ def search_leads(lead: SearchLead, runtime: ToolRuntime[AgentContext] = None) ->
         )
     except Exception as e:
         return f"Unable to search leads: {str(e)}"
+
+@tool
+def get_lead_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
+    """
+    Return aggregated statistics for leads accessible to the current user.
+
+    Includes total leads, lead status breakdown, lead source breakdown,
+    recent lead counts, and qualified lead conversion rate.
+
+    Use this tool when the user asks for lead statistics, lead performance,
+    lead counts, conversion rate, lead sources, or an overview of leads.
+
+    This tool is read-only and does not modify any leads.
+    """
+
+    current_user = runtime.context.user
+    try:
+        queryset = get_lead_queryset(current_user)
+        now = timezone.now()
+        today = now.date()
+        week_start = now - timedelta(days=7)
+        month_start = now.replace(day=1)
+        total_leads = queryset.count()
+        status_data = queryset.values("status").annotate(
+            count=Count("id")
+        )
+        status_breakdown = {
+            item["status"]: item["count"]
+            for item in status_data
+        }
+        source_data = queryset.values("source").annotate(
+            count=Count("id")
+        )
+        source_breakdown = {
+            item["source"] or "Unknown": item["count"]
+            for item in source_data
+        }
+        today_count = queryset.filter(created_at__date=today).count()
+        week_count = queryset.filter(created_at__gte=week_start).count()
+        month_count = queryset.filter(created_at__gte=month_start).count()
+        qualified_leads = queryset.filter(status__iexact="Qualified").count()
+        conversion_rate = (
+            round((qualified_leads / total_leads) * 100, 2)
+            if total_leads > 0
+            else 0
+        )
+
+        return str({
+            "total_leads": total_leads,
+            "status_breakdown": status_breakdown,
+            "source_breakdown": source_breakdown,
+            "recent_leads": {
+                "today": today_count,
+                "last_7_days": week_count,
+                "this_month": month_count,
+            },
+            "qualified_leads": qualified_leads,
+            "conversion_rate": conversion_rate,
+        })
+
+    except Exception as e:
+        return f"Unable to retrieve lead statistics: {str(e)}"

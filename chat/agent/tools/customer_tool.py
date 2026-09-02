@@ -3,6 +3,8 @@ from chat.agent.schema import *
 from customer.serializers import CustomerSerializer
 from chat.agent.context import AgentContext
 from customer.models import Customer
+from django.utils import timezone
+from datetime import timedelta
 
 
 
@@ -236,3 +238,61 @@ def search_customer(customer: SearchCustomer, runtime: ToolRuntime[AgentContext]
     except Exception as e:
         return f"Unable to search customers: {str(e)}"
 
+
+
+from langchain.tools import tool, ToolRuntime
+from chat.agent.context import AgentContext
+from django.utils import timezone
+from datetime import timedelta
+
+
+@tool
+def get_customer_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
+    """
+    Return aggregated statistics for customers accessible to the current user.
+
+    Includes total customers, recently created customers, customers converted
+    from leads, manually created customers, and customers with or without deals.
+
+    Use this tool when the user asks for customer statistics, customer counts,
+    customer growth, or an overview of customers.
+
+    This tool is read-only and does not modify any customers.
+    """
+    current_user = runtime.context.user
+    try:
+        queryset = get_customer_queryset(current_user)
+
+        now = timezone.now()
+        today = now.date()
+        week_start = now - timedelta(days=7)
+        month_start = now.replace(day=1)
+        total_customers = queryset.count()
+
+        today_count = queryset.filter(created_at__date=today).count()
+        week_count = queryset.filter(created_at__gte=week_start).count()
+        month_count = queryset.filter(created_at__gte=month_start).count()
+        converted_from_leads = queryset.filter(lead__isnull=False).count()
+        manually_created = queryset.filter(lead__isnull=True).count()
+
+        customers_with_deals = queryset.filter(deals__isnull=False,deals__is_deleted=False).distinct().count()
+        customers_without_deals = (total_customers - customers_with_deals)
+
+        return str({
+            "total_customers": total_customers,
+            "recent_customers": {
+                "today": today_count,
+                "last_7_days": week_count,
+                "this_month": month_count,
+            },
+            "customer_source": {
+                "converted_from_leads": converted_from_leads,
+                "manually_created": manually_created,
+            },
+            "deal_relationship": {
+                "customers_with_deals": customers_with_deals,
+                "customers_without_deals": customers_without_deals,
+            },
+        })
+    except Exception as e:
+        return f"Unable to retrieve customer statistics: {str(e)}"

@@ -4,9 +4,9 @@ from bs4 import BeautifulSoup
 from langchain.tools import tool
 from urllib.request import Request, urlopen
 from bs4.element import Comment
-from .lead_tool import add_lead, edit_lead, search_leads
-from .deal_tool import add_deal, edit_deal, search_deals
-from .customer_tool import add_customer, edit_customer, search_customer
+from .lead_tool import add_lead, edit_lead, search_leads, get_lead_stats
+from .deal_tool import add_deal, edit_deal, search_deals, get_deal_stats
+from .customer_tool import add_customer, edit_customer, search_customer, get_customer_stats
 
 
 @tool
@@ -82,8 +82,8 @@ def search_uploaded_files(query: str) -> str:
         The most relevant content found in the uploaded files as object.
     """
     context = vector_store.similarity_search(query, k=4)
-    return 
+    return context
 
 
 
-toolkit = [tavily_tool, get_web_content, search_uploaded_files, add_lead, edit_lead, search_leads, add_deal, edit_deal, search_deals, add_customer, edit_customer, search_customer]
+toolkit = [tavily_tool, get_web_content, search_uploaded_files, add_lead, edit_lead, search_leads, add_deal, edit_deal, search_deals, add_customer, edit_customer, search_customer, get_lead_stats, get_deal_stats, get_customer_stats]
