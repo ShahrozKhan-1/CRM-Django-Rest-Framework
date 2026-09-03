@@ -221,4 +221,5 @@ CORS_ALLOWED_ORIGINS = [
 # session/CSRF authentication from the deployed frontend.
 CSRF_TRUSTED_ORIGINS = [
     'https://connect-crm-suite.vercel.app',
+    'https://crm-django-rest-framework-production.up.railway.app',
 ]
