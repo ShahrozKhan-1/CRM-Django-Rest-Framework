@@ -106,8 +106,6 @@ def edit_customer(
     - email: New email address of the customer.
     - phone: New phone number of the customer.
     - company: New company associated with the customer.
-    - lead: ID of the lead to associate with the customer.
-    - assigned_to: ID of the CRM user to assign the customer to.
     If the user wants to edit a customer but does not provide the customer ID,
     use `search_customer` first to find the correct customer and obtain its ID.
     If the user wants to associate the customer with a lead but refers to the
@@ -141,12 +139,6 @@ def edit_customer(
 
     if customer.company is not None:
         data["company"] = customer.company
-
-    if customer.lead is not None:
-        data["lead"] = customer.lead
-
-    if customer.assigned_to is not None:
-        data["assigned_to"] = customer.assigned_to
 
     serializer = CustomerSerializer(
         instance=instance,

@@ -91,15 +91,13 @@ def edit_lead(lead: EditLead, runtime: ToolRuntime[AgentContext] = None) -> str:
     lead should move to another status.
 
     Editable fields:
-    - id: ID of the lead to edit.
+    - id: ID of the lead (not editable).
     - name: Name of the lead.
     - email: Email address of the lead.
     - phone: Phone number of the lead.
     - company: Company associated with the lead.
     - source: Source from which the lead was acquired.
-    - status: Current status of the lead.
     - description: Additional notes or description.
-    - assigned_to: Username of the user to assign the lead to.
 
     Returns:
         A confirmation message containing the updated lead details.
@@ -126,23 +124,9 @@ def edit_lead(lead: EditLead, runtime: ToolRuntime[AgentContext] = None) -> str:
     if lead.source is not None:
         data["source"] = lead.source
 
-    if lead.status is not None:
-        data["status"] = lead.status
-
     if lead.description is not None:
         data["description"] = lead.description
 
-    if lead.assigned_to is not None:
-        try:
-            assigned_user = User.objects.get(
-                username=lead.assigned_to
-            )
-            data["assigned_to"] = assigned_user.id
-
-        except User.DoesNotExist:
-            return (
-                f"User '{lead.assigned_to}' does not exist."
-            )
     serializer = LeadSerializer(
         instance=instance,
         data=data,

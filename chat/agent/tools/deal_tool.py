@@ -82,14 +82,11 @@ def edit_deal(
         overwrite fields that were not requested.
 
         Editable fields:
-        - id: ID of the deal to edit. This is required to identify the deal.
+        - id: ID of the deal to edit. This is required to identify the deal (not editable).
         - title: Title or name of the deal.
         - amount: Monetary amount of the deal.
-        - stage: Current stage of the deal.
         - expected_close_date: Expected closing date of the deal.
         - description: Additional notes or description about the deal.
-        - customer: ID of the customer associated with the deal.
-        - lead: ID of the lead associated with the deal, if applicable.
 
         Valid deal stages are:
         - Open: The deal is currently active and being pursued.
@@ -121,20 +118,11 @@ def edit_deal(
     if deal.amount is not None:
         data["amount"] = deal.amount
 
-    if deal.stage is not None:
-        data["stage"] = deal.stage
-
     if deal.expected_close_date is not None:
         data["expected_close_date"] = deal.expected_close_date
 
-    if deal.customer is not None:
-        data["customer"] = deal.customer
-
     if deal.description is not None:
         data["description"] = deal.description
-
-    if deal.lead is not None:
-        data["lead"] = deal.lead
 
     serializer = DealSerializer(
         instance=instance,
