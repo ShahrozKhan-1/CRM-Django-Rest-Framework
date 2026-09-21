@@ -24,4 +24,6 @@ urlpatterns = [
     path("view-permission/", PermissionListView.as_view(), name="view permission"),
 
     path("roles-stats/", RolesStatsAPIView.as_view(), name="view permission"),
+
+    path("agent-logs/", AgentLogView.as_view(), name="agent logs"),
 ]

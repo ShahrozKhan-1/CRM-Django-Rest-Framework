@@ -11,6 +11,7 @@ from django.db.models import Count
 from django.db import transaction
 from customer.models import Customer
 from deal.models import Deal
+from chat.agent.audit import log_agent_action, AgentActionLog
 
 
 def get_lead_queryset(user):
@@ -45,6 +46,7 @@ def add_lead(lead:AddLead, runtime: ToolRuntime[AgentContext] = None,) -> str:
         str: Confirmation message containing the details of the newly created lead.
     """
     current_user = runtime.context.user
+    ctx = runtime.context
     try:
         assigned_user = User.objects.get(username=lead.assigned_to)
     except Exception as e:
@@ -61,10 +63,30 @@ def add_lead(lead:AddLead, runtime: ToolRuntime[AgentContext] = None,) -> str:
     serializer = LeadSerializer(data=lead)
     if serializer.is_valid():
         instance = serializer.save(created_by=current_user)
+        log_agent_action(
+                user=current_user,
+                session_id=ctx.session_id,
+                user_query=ctx.user_query,
+                tool_name="add_lead",
+                operation="create",
+                entity_type="lead",
+                input_data=lead,
+                status=AgentActionLog.Status.SUCCESS,
+                error_message=str(serializer.errors),
+            )
         return (
-            f"Lead '{instance.name}' was successfully created "
-            f"with ID {instance.id}."
-        )
+            f"Lead '{instance.name}' was successfully created ")
+    log_agent_action(
+        user=current_user,
+        session_id=ctx.session_id,
+        user_query=ctx.user_query,
+        tool_name="add_lead",
+        operation="create",
+        entity_type="lead",
+        input_data=lead,
+        status=AgentActionLog.Status.ERROR,
+        error_message=str(serializer.errors),
+    )
     return f"Unable to create lead: {serializer.errors}"
 
 
@@ -104,10 +126,24 @@ def edit_lead(lead: EditLead, runtime: ToolRuntime[AgentContext] = None) -> str:
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
     try:
         instance = get_lead_queryset(current_user).filter(id=lead.id).first()
     except Lead.DoesNotExist:
-        return f"Lead with ID {lead.id} was not found or you don't have permission to edit it."
+        error_message = f"Lead with ID {lead.id} was not found or you don't have permission to edit it."
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_lead",
+            operation="update",
+            entity_type="lead",
+            entity_id=lead.id,
+            input_data={"id": lead.id},
+            status=AgentActionLog.Status.ERROR,
+            error_message=error_message,
+        )
+        return error_message
     data = {}
     if lead.name is not None:
         data["name"] = lead.name
@@ -127,6 +163,22 @@ def edit_lead(lead: EditLead, runtime: ToolRuntime[AgentContext] = None) -> str:
     if lead.description is not None:
         data["description"] = lead.description
 
+    if not instance:
+        error_message = f"Lead with ID {lead.id} was not found or you don't have permission to edit it."
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_lead",
+            operation="update",
+            entity_type="lead",
+            entity_id=lead.id,
+            input_data=data,
+            status=AgentActionLog.Status.ERROR,
+            error_message=error_message,
+        )
+        return error_message
+
     serializer = LeadSerializer(
         instance=instance,
         data=data,
@@ -134,11 +186,35 @@ def edit_lead(lead: EditLead, runtime: ToolRuntime[AgentContext] = None) -> str:
     )
     if serializer.is_valid():
         instance = serializer.save()
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_lead",
+            operation="update",
+            entity_type="lead",
+            entity_id=instance.id,
+            input_data=data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message=str(serializer.errors),
+        )
         return (
             f"Lead '{instance.name}' was successfully updated "
             f"with ID {instance.id}."
         )
 
+    log_agent_action(
+        user=current_user,
+        session_id=ctx.session_id,
+        user_query=ctx.user_query,
+        tool_name="edit_lead",
+        operation="update",
+        entity_type="lead",
+        entity_id=lead.id,
+        input_data=data,
+        status=AgentActionLog.Status.ERROR,
+        error_message=str(serializer.errors),
+    )
     return f"Unable to update lead: {serializer.errors}"
 
 
@@ -162,6 +238,15 @@ def search_leads(lead: SearchLead, runtime: ToolRuntime[AgentContext] = None) ->
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
+    input_data = {
+        "name": lead.name,
+        "email": lead.email,
+        "phone": lead.phone,
+        "company": lead.company,
+        "source": lead.source,
+        "status": lead.status,
+    }
     try:
         queryset = get_lead_queryset(current_user)
         if lead.name:
@@ -178,8 +263,19 @@ def search_leads(lead: SearchLead, runtime: ToolRuntime[AgentContext] = None) ->
             queryset = queryset.filter(status__iexact=lead.status)
         leads = queryset[:10]
         if not leads:
+            log_agent_action(
+                user=current_user,
+                session_id=ctx.session_id,
+                user_query=ctx.user_query,
+                tool_name="search_leads",
+                operation="read",
+                entity_type="lead",
+                input_data=input_data,
+                status=AgentActionLog.Status.SUCCESS,
+                error_message="",
+            )
             return "No matching leads were found."
-        return "\n".join(
+        result = "\n".join(
             [
                 f"Id: {item.id}"
                 f"Name: {item.name}, "
@@ -190,7 +286,31 @@ def search_leads(lead: SearchLead, runtime: ToolRuntime[AgentContext] = None) ->
                 for item in leads
             ]
         )
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="search_leads",
+            operation="read",
+            entity_type="lead",
+            input_data=input_data,
+            output_data={"count": len(leads)},
+            status=AgentActionLog.Status.SUCCESS,
+            error_message="",
+        )
+        return result
     except Exception as e:
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="search_leads",
+            operation="read",
+            entity_type="lead",
+            input_data=input_data,
+            status=AgentActionLog.Status.ERROR,
+            error_message=str(e),
+        )
         return f"Unable to search leads: {str(e)}"
 
 @tool
@@ -208,6 +328,7 @@ def get_lead_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
     try:
         queryset = get_lead_queryset(current_user)
         now = timezone.now()
@@ -239,7 +360,7 @@ def get_lead_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
             else 0
         )
 
-        return str({
+        output_data = {
             "total_leads": total_leads,
             "status_breakdown": status_breakdown,
             "source_breakdown": source_breakdown,
@@ -250,9 +371,33 @@ def get_lead_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
             },
             "qualified_leads": qualified_leads,
             "conversion_rate": conversion_rate,
-        })
+        }
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="get_lead_stats",
+            operation="read",
+            entity_type="lead",
+            input_data={},
+            output_data=output_data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message="",
+        )
+        return str(output_data)
 
     except Exception as e:
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="get_lead_stats",
+            operation="read",
+            entity_type="lead",
+            input_data={},
+            status=AgentActionLog.Status.ERROR,
+            error_message=str(e),
+        )
         return f"Unable to retrieve lead statistics: {str(e)}"
 
 
@@ -272,18 +417,46 @@ def convert_lead(lead: ConvertLead, runtime: ToolRuntime[AgentContext] = None) -
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
+    input_data = {"id": lead.id}
 
     try:
         lead_instance = (get_lead_queryset(current_user).filter(id=lead.id).first())
         if not lead_instance:
-            return (f"Lead with ID {lead.id} was not found or you don't have permission to access it.")
+            error_message = f"Lead with ID {lead.id} was not found or you don't have permission to access it."
+            log_agent_action(
+                user=current_user,
+                session_id=ctx.session_id,
+                user_query=ctx.user_query,
+                tool_name="convert_lead",
+                operation="convert",
+                entity_type="lead",
+                entity_id=lead.id,
+                input_data=input_data,
+                status=AgentActionLog.Status.ERROR,
+                error_message=error_message,
+            )
+            return error_message
 
         if lead_instance.status != Lead.STATUS.QUALIFIED:
-            return (
+            error_message = (
                 f"Lead '{lead_instance.name}' cannot be converted. "
                 f"Its current status is '{lead_instance.status}'. "
                 f"The lead must be Qualified first."
             )
+            log_agent_action(
+                user=current_user,
+                session_id=ctx.session_id,
+                user_query=ctx.user_query,
+                tool_name="convert_lead",
+                operation="convert",
+                entity_type="lead",
+                entity_id=lead_instance.id,
+                input_data=input_data,
+                status=AgentActionLog.Status.ERROR,
+                error_message=error_message,
+            )
+            return error_message
         existing_customer = Customer.objects.filter(
             lead=lead_instance,
             is_deleted=False,
@@ -295,6 +468,22 @@ def convert_lead(lead: ConvertLead, runtime: ToolRuntime[AgentContext] = None) -
                 is_deleted=False,
             ).first()
             if existing_deal:
+                log_agent_action(
+                    user=current_user,
+                    session_id=ctx.session_id,
+                    user_query=ctx.user_query,
+                    tool_name="convert_lead",
+                    operation="convert",
+                    entity_type="lead",
+                    entity_id=lead_instance.id,
+                    input_data=input_data,
+                    output_data={
+                        "customer_id": existing_customer.id,
+                        "deal_id": existing_deal.id,
+                    },
+                    status=AgentActionLog.Status.SUCCESS,
+                    error_message="",
+                )
                 return (
                     f"Lead '{lead_instance.name}' has already been "
                     f"converted.\n"
@@ -311,6 +500,22 @@ def convert_lead(lead: ConvertLead, runtime: ToolRuntime[AgentContext] = None) -
                     customer=existing_customer,
                     assigned_to=lead_instance.assigned_to,
                 )
+            log_agent_action(
+                user=current_user,
+                session_id=ctx.session_id,
+                user_query=ctx.user_query,
+                tool_name="convert_lead",
+                operation="convert",
+                entity_type="lead",
+                entity_id=lead_instance.id,
+                input_data=input_data,
+                output_data={
+                    "customer_id": existing_customer.id,
+                    "deal_id": deal.id,
+                },
+                status=AgentActionLog.Status.SUCCESS,
+                error_message="",
+            )
             return (
                 f"Lead '{lead_instance.name}' was already converted "
                 f"to Customer ID {existing_customer.id}. "
@@ -334,6 +539,22 @@ def convert_lead(lead: ConvertLead, runtime: ToolRuntime[AgentContext] = None) -
                 customer=customer,
                 assigned_to=lead_instance.assigned_to,
             )
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="convert_lead",
+            operation="convert",
+            entity_type="lead",
+            entity_id=lead_instance.id,
+            input_data=input_data,
+            output_data={
+                "customer_id": customer.id,
+                "deal_id": deal.id,
+            },
+            status=AgentActionLog.Status.SUCCESS,
+            error_message="",
+        )
         return (
             f"Lead '{lead_instance.name}' was successfully converted.\n"
             f"Customer created with ID: {customer.id}\n"
@@ -341,6 +562,18 @@ def convert_lead(lead: ConvertLead, runtime: ToolRuntime[AgentContext] = None) -
         )
 
     except Exception as e:
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="convert_lead",
+            operation="convert",
+            entity_type="lead",
+            entity_id=lead.id,
+            input_data=input_data,
+            status=AgentActionLog.Status.ERROR,
+            error_message=f"{type(e).__name__}: {str(e)}",
+        )
         return (
             f"Unable to convert lead '{lead.id}': "
             f"{type(e).__name__}: {str(e)}"

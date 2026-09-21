@@ -5,6 +5,7 @@ from chat.agent.context import AgentContext
 from customer.models import Customer
 from django.utils import timezone
 from datetime import timedelta
+from chat.agent.audit import log_agent_action, AgentActionLog
 
 
 
@@ -61,6 +62,7 @@ def add_customer(customer: AddCustomer, runtime: ToolRuntime[AgentContext]) -> s
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
 
     customer_data = {
         "name": customer.name,
@@ -75,12 +77,35 @@ def add_customer(customer: AddCustomer, runtime: ToolRuntime[AgentContext]) -> s
 
     if serializer.is_valid():
         instance = serializer.save()
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="add_customer",
+            operation="create",
+            entity_type="customer",
+            entity_id=instance.id,
+            input_data=customer_data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message=str(serializer.errors),
+        )
 
         return (
             f"Customer '{instance.name}' was successfully created "
             f"with ID {instance.id}."
         )
 
+    log_agent_action(
+        user=current_user,
+        session_id=ctx.session_id,
+        user_query=ctx.user_query,
+        tool_name="add_customer",
+        operation="create",
+        entity_type="customer",
+        input_data=customer_data,
+        status=AgentActionLog.Status.ERROR,
+        error_message=str(serializer.errors),
+    )
     return f"Unable to create customer: {serializer.errors}"
 
 
@@ -123,10 +148,24 @@ def edit_customer(
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
     try:
         instance = get_customer_queryset(current_user).filter(id=customer.id).first()
     except Customer.DoesNotExist:
-        return f"Customer with ID {customer.id} was not found or you don't have permission to edit it."
+        error_message = f"Customer with ID {customer.id} was not found or you don't have permission to edit it."
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_customer",
+            operation="update",
+            entity_type="customer",
+            entity_id=customer.id,
+            input_data={"id": customer.id},
+            status=AgentActionLog.Status.ERROR,
+            error_message=error_message,
+        )
+        return error_message
     data = {}
     if customer.name is not None:
         data["name"] = customer.name
@@ -140,6 +179,22 @@ def edit_customer(
     if customer.company is not None:
         data["company"] = customer.company
 
+    if not instance:
+        error_message = f"Customer with ID {customer.id} was not found or you don't have permission to edit it."
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_customer",
+            operation="update",
+            entity_type="customer",
+            entity_id=customer.id,
+            input_data=data,
+            status=AgentActionLog.Status.ERROR,
+            error_message=error_message,
+        )
+        return error_message
+
     serializer = CustomerSerializer(
         instance=instance,
         data=data,
@@ -147,11 +202,35 @@ def edit_customer(
     )
     if serializer.is_valid():
         instance = serializer.save()
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_customer",
+            operation="update",
+            entity_type="customer",
+            entity_id=instance.id,
+            input_data=data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message=str(serializer.errors),
+        )
         return (
             f"Customer '{instance.name}' was successfully updated "
             f"with ID {instance.id}."
         )
 
+    log_agent_action(
+        user=current_user,
+        session_id=ctx.session_id,
+        user_query=ctx.user_query,
+        tool_name="edit_customer",
+        operation="update",
+        entity_type="customer",
+        entity_id=customer.id,
+        input_data=data,
+        status=AgentActionLog.Status.ERROR,
+        error_message=str(serializer.errors),
+    )
     return f"Unable to update Customer: {serializer.errors}"
 
 
@@ -192,6 +271,15 @@ def search_customer(customer: SearchCustomer, runtime: ToolRuntime[AgentContext]
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
+    input_data = {
+        "name": customer.name,
+        "email": customer.email,
+        "phone": customer.phone,
+        "company": customer.company,
+        "lead": customer.lead,
+        "assigned_to": customer.assigned_to,
+    }
     try:
         queryset = get_customer_queryset(current_user)
 
@@ -214,28 +302,57 @@ def search_customer(customer: SearchCustomer, runtime: ToolRuntime[AgentContext]
             queryset = queryset.filter(assigned_to_id=customer.assigned_to)
         customers = queryset[:10]
         if not customers:
+            log_agent_action(
+                user=current_user,
+                session_id=ctx.session_id,
+                user_query=ctx.user_query,
+                tool_name="search_customer",
+                operation="read",
+                entity_type="customer",
+                input_data=input_data,
+                status=AgentActionLog.Status.SUCCESS,
+                error_message="",
+            )
             return "No matching customers were found."
-        return "\n".join(
+        result = "\n".join(
             [
                 f"Id: {item.id},"
                 f"Name: {item.name}, "
                 f"Email: {item.email}, "
                 f"Phone Number: {item.phone}, "
                 f"Company: {item.company}, "
-                f"Lead: {item.lead.id}, "
+                f"Lead: {item.lead.id if item.lead else None}, "
                 f"Assigned to: {item.assigned_to}, "
                 for item in customers
             ]
         )
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="search_customer",
+            operation="read",
+            entity_type="customer",
+            input_data=input_data,
+            output_data={"count": len(customers)},
+            status=AgentActionLog.Status.SUCCESS,
+            error_message="",
+        )
+        return result
     except Exception as e:
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="search_customer",
+            operation="read",
+            entity_type="customer",
+            input_data=input_data,
+            status=AgentActionLog.Status.ERROR,
+            error_message=str(e),
+        )
         return f"Unable to search customers: {str(e)}"
 
-
-
-from langchain.tools import tool, ToolRuntime
-from chat.agent.context import AgentContext
-from django.utils import timezone
-from datetime import timedelta
 
 
 @tool
@@ -252,6 +369,7 @@ def get_customer_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
     This tool is read-only and does not modify any customers.
     """
     current_user = runtime.context.user
+    ctx = runtime.context
     try:
         queryset = get_customer_queryset(current_user)
 
@@ -270,7 +388,7 @@ def get_customer_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
         customers_with_deals = queryset.filter(deals__isnull=False,deals__is_deleted=False).distinct().count()
         customers_without_deals = (total_customers - customers_with_deals)
 
-        return str({
+        output_data = {
             "total_customers": total_customers,
             "recent_customers": {
                 "today": today_count,
@@ -285,6 +403,30 @@ def get_customer_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
                 "customers_with_deals": customers_with_deals,
                 "customers_without_deals": customers_without_deals,
             },
-        })
+        }
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="get_customer_stats",
+            operation="read",
+            entity_type="customer",
+            input_data={},
+            output_data=output_data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message="",
+        )
+        return str(output_data)
     except Exception as e:
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="get_customer_stats",
+            operation="read",
+            entity_type="customer",
+            input_data={},
+            status=AgentActionLog.Status.ERROR,
+            error_message=str(e),
+        )
         return f"Unable to retrieve customer statistics: {str(e)}"

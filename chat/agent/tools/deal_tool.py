@@ -6,6 +6,7 @@ from deal.models import Deal
 from django.db.models import Count, Sum, Avg
 from django.utils import timezone
 from datetime import timedelta
+from chat.agent.audit import log_agent_action, AgentActionLog
 
 
 
@@ -44,6 +45,7 @@ def add_deal(deal: AddDeal, runtime: ToolRuntime[AgentContext]) -> str:
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
 
     deal_data = {
         "title": deal.title,
@@ -60,12 +62,35 @@ def add_deal(deal: AddDeal, runtime: ToolRuntime[AgentContext]) -> str:
 
     if serializer.is_valid():
         instance = serializer.save()
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="add_deal",
+            operation="create",
+            entity_type="deal",
+            entity_id=instance.id,
+            input_data=deal_data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message=str(serializer.errors),
+        )
 
         return (
             f"Deal '{instance.title}' was successfully created "
             f"with ID {instance.id}."
         )
 
+    log_agent_action(
+        user=current_user,
+        session_id=ctx.session_id,
+        user_query=ctx.user_query,
+        tool_name="add_deal",
+        operation="create",
+        entity_type="deal",
+        input_data=deal_data,
+        status=AgentActionLog.Status.ERROR,
+        error_message=str(serializer.errors),
+    )
     return f"Unable to create deal: {serializer.errors}"
 
 
@@ -107,10 +132,24 @@ def edit_deal(
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
     try:
         instance = get_deal_queryset(current_user).filter(id=deal.id).first()
     except Deal.DoesNotExist:
-        return f"Deal with ID {deal.id} was not found or you don't have permission to edit it."
+        error_message = f"Deal with ID {deal.id} was not found or you don't have permission to edit it."
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_deal",
+            operation="update",
+            entity_type="deal",
+            entity_id=deal.id,
+            input_data={"id": deal.id},
+            status=AgentActionLog.Status.ERROR,
+            error_message=error_message,
+        )
+        return error_message
     data = {}
     if deal.title is not None:
         data["title"] = deal.title
@@ -124,6 +163,22 @@ def edit_deal(
     if deal.description is not None:
         data["description"] = deal.description
 
+    if not instance:
+        error_message = f"Deal with ID {deal.id} was not found or you don't have permission to edit it."
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_deal",
+            operation="update",
+            entity_type="deal",
+            entity_id=deal.id,
+            input_data=data,
+            status=AgentActionLog.Status.ERROR,
+            error_message=error_message,
+        )
+        return error_message
+
     serializer = DealSerializer(
         instance=instance,
         data=data,
@@ -131,11 +186,35 @@ def edit_deal(
     )
     if serializer.is_valid():
         instance = serializer.save()
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="edit_deal",
+            operation="update",
+            entity_type="deal",
+            entity_id=instance.id,
+            input_data=data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message=str(serializer.errors),
+        )
         return (
             f"Deal '{instance.title}' was successfully updated "
             f"with ID {instance.id}."
         )
 
+    log_agent_action(
+        user=current_user,
+        session_id=ctx.session_id,
+        user_query=ctx.user_query,
+        tool_name="edit_deal",
+        operation="update",
+        entity_type="deal",
+        entity_id=deal.id,
+        input_data=data,
+        status=AgentActionLog.Status.ERROR,
+        error_message=str(serializer.errors),
+    )
     return f"Unable to update deal: {serializer.errors}"
 
 
@@ -159,6 +238,15 @@ def search_deals(deal: SearchDeal, runtime: ToolRuntime[AgentContext] = None) ->
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
+    input_data = {
+        "title": deal.title,
+        "amount": deal.amount,
+        "expected_close_date": deal.expected_close_date,
+        "customer": deal.customer,
+        "lead": deal.lead,
+        "stage": deal.stage,
+    }
     try:
         queryset = get_deal_queryset(current_user)
         if deal.title:
@@ -175,8 +263,19 @@ def search_deals(deal: SearchDeal, runtime: ToolRuntime[AgentContext] = None) ->
             queryset = queryset.filter(stage__iexact=deal.stage)
         deals = queryset[:10]
         if not deals:
+            log_agent_action(
+                user=current_user,
+                session_id=ctx.session_id,
+                user_query=ctx.user_query,
+                tool_name="search_deals",
+                operation="read",
+                entity_type="deal",
+                input_data=input_data,
+                status=AgentActionLog.Status.SUCCESS,
+                error_message="",
+            )
             return "No matching deals were found."
-        return "\n".join(
+        result = "\n".join(
             [
                 f"Id: {item.id}"
                 f"Title: {item.title}, "
@@ -187,7 +286,31 @@ def search_deals(deal: SearchDeal, runtime: ToolRuntime[AgentContext] = None) ->
                 for item in deals
             ]
         )
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="search_deals",
+            operation="read",
+            entity_type="deal",
+            input_data=input_data,
+            output_data={"count": len(deals)},
+            status=AgentActionLog.Status.SUCCESS,
+            error_message="",
+        )
+        return result
     except Exception as e:
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="search_deals",
+            operation="read",
+            entity_type="deal",
+            input_data=input_data,
+            status=AgentActionLog.Status.ERROR,
+            error_message=str(e),
+        )
         return f"Unable to search deals: {str(e)}"
 
 
@@ -210,6 +333,7 @@ def get_deal_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
     """
 
     current_user = runtime.context.user
+    ctx = runtime.context
 
     try:
         queryset = get_deal_queryset(current_user)
@@ -250,7 +374,7 @@ def get_deal_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
         )
         closing_soon = queryset.filter(expected_close_date__gte=today, expected_close_date__lte=next_30_days,).exclude(stage__in=["Won", "Lost", "Closed"]).count()
         overdue = queryset.filter(expected_close_date__lt=today,).exclude(stage__in=["Won", "Lost", "Closed"]).count()
-        return str({
+        output_data = {
             "total_deals": total_deals,
             "total_value": total_value,
             "average_deal_value": round(average_value, 2),
@@ -261,6 +385,30 @@ def get_deal_stats(runtime: ToolRuntime[AgentContext] = None) -> str:
             "win_rate": win_rate,
             "closing_soon": closing_soon,
             "overdue_deals": overdue,
-        })
+        }
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="get_deal_stats",
+            operation="read",
+            entity_type="deal",
+            input_data={},
+            output_data=output_data,
+            status=AgentActionLog.Status.SUCCESS,
+            error_message="",
+        )
+        return str(output_data)
     except Exception as e:
+        log_agent_action(
+            user=current_user,
+            session_id=ctx.session_id,
+            user_query=ctx.user_query,
+            tool_name="get_deal_stats",
+            operation="read",
+            entity_type="deal",
+            input_data={},
+            status=AgentActionLog.Status.ERROR,
+            error_message=str(e),
+        )
         return f"Unable to retrieve deal statistics: {str(e)}"

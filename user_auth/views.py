@@ -239,3 +239,49 @@ class RolesStatsAPIView(APIView):
             {"error": "Unable to fetch Roles statistics"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+class AgentLogView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [HasPermissions]
+    permission_name = "agent_log"
+
+    def get(self, request):
+        logs = AgentActionLog.objects.filter(user=request.user)
+
+        session_id = request.GET.get("session_id")
+        tool_name = request.GET.get("tool_name")
+        operation = request.GET.get("operation")
+        entity_type = request.GET.get("entity_type")
+        entity_id = request.GET.get("entity_id")
+        status_filter = request.GET.get("status")
+
+        if session_id:
+            logs = logs.filter(session_id=session_id)
+        if tool_name:
+            logs = logs.filter(tool_name=tool_name)
+        if operation:
+            logs = logs.filter(operation=operation)
+        if entity_type:
+            logs = logs.filter(entity_type=entity_type)
+        if entity_id:
+            logs = logs.filter(entity_id=entity_id)
+        if status_filter:
+            logs = logs.filter(status=status_filter)
+
+        data = list(
+            logs.order_by("-created_at").values(
+                "id", "session_id", "user_query", "tool_name", "operation",
+                "entity_type", "entity_id", "input_data", "output_data",
+                "status", "error_message", "created_at",
+            )
+        )
+
+        return Response(
+            {
+                "data": data,
+                "count": len(data),
+                "message": "Agent logs fetched successfully",
+            },
+            status=status.HTTP_200_OK,
+        )

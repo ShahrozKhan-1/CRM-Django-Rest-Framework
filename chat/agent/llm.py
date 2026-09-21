@@ -17,7 +17,7 @@ def chat_llm(content: str, thread_id: int, context):
                 "thread_id": str(thread_id),
             }
         },
-        context=AgentContext(user=context)
+        context=AgentContext(user=context, session_id=str(thread_id), user_query=content)
     )
     message = result["messages"][-1]
     content = getattr(message, "content", message)

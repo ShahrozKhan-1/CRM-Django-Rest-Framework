@@ -26,3 +26,27 @@ class Permission(models.Model):
 
     def __str__(self):
         return f"{self.role.name} - {self.name}"
+
+
+
+class AgentActionLog(models.Model):
+    class Status(models.TextChoices):
+        SUCCESS = "success", "Success"
+        ERROR = "error", "Error"
+
+    user = models.ForeignKey(User, related_name="agent_logs", on_delete=models.CASCADE)
+    session_id = models.CharField(max_length=128, blank=True)
+
+    user_query = models.CharField(blank=True)
+    tool_name = models.CharField(max_length=128)
+    operation = models.CharField(max_length=32, blank=True)
+
+    input_data = models.JSONField(default=dict, blank=True)
+    output_data = models.JSONField(default=dict, blank=True)
+    entity_type = models.CharField(max_length=32, blank=True)
+    entity_id = models.IntegerField(null=True, blank=True)
+
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.SUCCESS)
+    error_message = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
