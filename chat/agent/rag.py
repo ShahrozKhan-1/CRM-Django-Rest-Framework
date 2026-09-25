@@ -4,7 +4,7 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from pathlib import Path
-from CRM.settings import EMBED_MODEL
+from .config import EMBED_MODEL
 
 
 path = Path("../../KnowledgeBase")

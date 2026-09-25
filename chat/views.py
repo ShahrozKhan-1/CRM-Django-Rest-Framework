@@ -54,7 +54,10 @@ class ChatMessageView(APIView):
         serializer = ChatMessageSerializer(data=instance)
         if serializer.is_valid():
             user_message = serializer.save(chat_id=chat)
-            ai_response = chat_llm(content=user_message.content, thread_id=user_message.chat_id, context=request.user)
+            try:
+                ai_response = chat_llm(content=user_message.content, thread_id=user_message.chat_id, context=request.user)
+            except Exception as e:
+                return Response({"message":f"Error While Binding Context: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             ai_message = ChatMessage.objects.create(chat_id=chat, role=ChatMessage.TYPE.AI, content=ai_response)
             return Response({"data":serializer.data, "message":"Message Send Successffully"})
         return Response({"data":serializer.errors, "message":"Error While Sending Message"})

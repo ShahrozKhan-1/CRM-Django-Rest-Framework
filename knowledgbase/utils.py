@@ -3,7 +3,7 @@ from langchain_core.documents.base import Blob
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import requests
 from .models import KnowledgeDocument
-from CRM.settings import vector_store
+from chat.agent.config import vector_store
 
 
 def get_docs(attachments):

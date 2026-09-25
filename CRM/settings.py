@@ -33,15 +33,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-$d&o6)_xkwd++sb0c+*932&gzk1l-f$cahyls2+=!xw8iop-_y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-GEMINI_MODEL = os.getenv("GEMINI_MODEL")
-EMBED_MODEL= os.getenv('EMBED_MODEL')
-
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+DEBUG = False
 
 
 # Application definition
@@ -160,12 +152,6 @@ DATABASES = {
     }
 }
 
-from langchain_chroma import Chroma
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
-embed_model = GoogleGenerativeAIEmbeddings(model=str(EMBED_MODEL))
-vector_store = Chroma(embedding_function=embed_model, persist_directory="VectorDB")
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -203,7 +189,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'crm-django-rest-framework-production.up.railway.app',
+    'connect-crm-suite.vercel.app',
+    'preview--ims.lovable.app',
+    'localhost',
+    '127.0.0.1',
+]
 
 # Frontend origins allowed to call the API from a browser.
 CORS_ALLOWED_ORIGINS = [

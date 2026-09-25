@@ -1,5 +1,6 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from CRM.settings import GEMINI_API_KEY, GEMINI_MODEL, NEON_DB
+from CRM.settings import NEON_DB
+from .config import *
 from langgraph.graph.state import END, START, StateGraph
 from langgraph.graph import MessagesState
 from langgraph.checkpoint.postgres import PostgresSaver

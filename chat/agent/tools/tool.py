@@ -1,4 +1,4 @@
-from CRM.settings import TAVILY_API_KEY, vector_store
+from ..config import TAVILY_API_KEY, vector_store
 from langchain_tavily import TavilySearch
 from bs4 import BeautifulSoup
 from langchain.tools import tool, ToolRuntime
